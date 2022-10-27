@@ -1,0 +1,13 @@
+name = "NLSA"
+uuid = "e2e491fc-7d8f-4591-840c-7964746acd08"
+authors = ["clairevalva <clairev@nyu.edu> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
