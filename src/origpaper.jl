@@ -49,6 +49,7 @@ function sym_M(M::Matrix{Float64})
 end
 
 function sparseW(X::Matrix{Float64}, eps, NN::Integer = 0; usenorm::Function = norm)
+    # only compute the distances for the nearest neighbors stuff
     D, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
     Vs = local_vel(X)
     
@@ -62,15 +63,11 @@ function sparseW(X::Matrix{Float64}, eps, NN::Integer = 0; usenorm::Function = n
     
     for i = 1:nT
         for j = 1:NN
-            divC = Vs[i] * Vs[j] * eps
+            divC = Vs[i] * Vs[N[i,j]] * eps
             W[i, N[i,j]] = exp(-1*D[i,j]^2 / divC )
         end
     end
 
-    # if NN != nT
-    #     # do symmetrization step if necessary
-    #     W = sym_M(W)
-    # end
     W = sym_M(W)
     return W
 end

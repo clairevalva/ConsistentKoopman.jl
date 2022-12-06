@@ -12,8 +12,7 @@ end
 function doNLSA(model::NLSAmodel)
     # assumes that the kernel is symmetric here
     X = model.srcData
-    Xemb = delayembed(X', model.nDelays) # this takes array in the wrong shape
-    Xemb = Xemb'
+    Xemb = delayembed(X', model.nDelays)' # this takes array in the wrong shape
     
     if model.kernelvel
         ker(x,y, xmin, ymin) = model.kernel(x, y, xmin, ymin, model.kernelargs...)
