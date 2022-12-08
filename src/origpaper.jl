@@ -1,5 +1,5 @@
 # original implementation, from supplement of 10.1073/pnas.1118984109
-using LinearAlgebra
+include("kernels.jl")
 
 function local_vel(X::Matrix{Float64})
     # input X, assumes X size nT by nD where nD is the spatial dimension
@@ -48,13 +48,14 @@ function sym_M(M::Matrix{Float64})
     return M
 end
 
-function sparseW(X::Matrix{Float64}, eps, NN::Integer = 0; usenorm::Function = norm)
+
+
+function sparseW_vel(X::Matrix{Float64},eps, NN::Integer = 0; usenorm::Function = norm, tune = false)
     # only compute the distances for the nearest neighbors stuff
     D, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
     Vs = local_vel(X)
     
     nT = size(X, 1) - 1
-
     if NN == 0
         NN = nT
     end
@@ -63,6 +64,7 @@ function sparseW(X::Matrix{Float64}, eps, NN::Integer = 0; usenorm::Function = n
     
     for i = 1:nT
         for j = 1:NN
+            # in theory should be able to replace the below with simplevel_kernel
             divC = Vs[i] * Vs[N[i,j]] * eps
             W[i, N[i,j]] = exp(-1*D[i,j]^2 / divC )
         end
@@ -92,18 +94,9 @@ function normW(X::Matrix{Float64})
 end
 
 function lapEig(X::Matrix{Float64}, eps::Float64, NN = 0, L = 0; usenorm::Function = norm)
-    W = sparseW(X, eps, NN; usenorm = usenorm)
+    W = sparseW_vel(X, eps, NN; usenorm = usenorm)
     P, μ = normW(W)
     η, φ = computeDiffusionEig(P, L)
 
     return μ, η, φ
 end
-
-# TODO test current
-# TODO projection to physical space (and reconstruction?)
-
-X = Matrix(x');
-testμ, testη, testφ = lapEig(X, 1., 0, 51)
-
-plot(real(testφ[1:1000,2]))
-plot!(imag(testφ[1:1000,3]))

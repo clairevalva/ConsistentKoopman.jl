@@ -29,16 +29,6 @@ function doNLSA(model::NLSAmodel)
 end
 
 
-function constructK(kmat::Matrix{Float64})
-    # TODO: test
-    # kmat = kerneldists[nDelays - 1:end, nDelays - 1:end]
-    D = sum(kernelmid, dims = 1)
-    S = sum(kernelmid, dims = 1) ./ D
-
-    Khat = diagm(D^-1) * kmat * diagm(S^-0.5)
-    K = Khat * Khat'
-    return K
-end
 
 function computeDiffusionEig(K::Matrix{Float64}, L::Integer = 0)
     # TODO: test
