@@ -4,7 +4,9 @@ include("torusData.jl")
 include("origpaper.jl")
 include("kernels.jl")
 include("modelConstruct.jl")
+include("modelComponents.jl")
 using Plots
+using Statistics
 
 
 X = Matrix(x');
@@ -44,7 +46,7 @@ W = sparseW_mb(X, useϵ, NN = 0)
 
 # normalize matrix
 P, μ = normW(W)
-testQ = sum(W, dims = 2)
+
 # compute diffusion eigenfunctions
 κ, φ = computeDiffusionEig(P, nDiff)
 

@@ -1,4 +1,27 @@
 # original implementation, from supplement of 10.1073/pnas.1118984109
+# input : data array x of size m × S
+# lag window q
+# Gaussian width ϵ
+# number of nearest neighbors b
+# number of Laplacian eigenfunctions l
+# output: array of spatial modes u in embedding space, of size n × l, where n = mq
+# array of temporal modes v of size s × l, where s = S − 2q + 1
+# vector of singular values σ of size l
+# arrays of spatio-temporal patterns {x˜
+# 1
+# , . . . , x˜
+# l}, each of size m × s
+# % m: physical space dimension
+# % n: embedding space dimension
+# % S: number of input samples
+# % s: number of samples for which temporal modes are computed
+# % because of embedding and the normalization by ξ in Algorithm S2, s < S
+# % specifically, v(i, :) and ˜x
+# k
+# (:, i) correspond to x(:, i + 2q − 1)
+
+
+
 include("kernels.jl")
 
 function local_vel(X::Matrix{Float64})
