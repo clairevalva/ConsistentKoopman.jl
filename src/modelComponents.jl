@@ -1,3 +1,14 @@
+export 
+    tune_bandwidth,
+    sparseW_mb,
+    normW,
+    computeDiffusionEig,
+    normDiffEig,
+    diffSVD,
+    diffProjection,
+    projectDiffEig
+
+
 """
     tune_bandwidth(D::Matrix{Float64},
      DN::Matrix{Integer}, NN::Integer,
@@ -98,6 +109,81 @@ end
 
 
 """
+    normW(X::Matrix{Float64})
+
+    normalizes sparse kernel matrix as described in 10.1016/j.acha.2017.09.001
+
+    Arguments
+    =================
+    - X: square sparse kernel matrix
+
+"""
+function normW(X::Matrix{Float64})
+    nX = size(X, 1)
+    Q = sum(X, dims = 2)
+    Qdiv = Q * Q'
+    X = X ./ Qdiv
+
+    Q = sum(X, dims = 1)
+    for i = 1:nX
+        X[i,:] = X[i,:] ./ Q[i]
+    end
+    # µ is a vector of size s with the property µP = µ
+    μ = Q ./ sum(Q)
+
+    return X, μ
+end
+
+"""
+    computeDiffusionEig(K::Matrix{Float64}, L::Integer = 0)
+
+    computes L diffusion eigenfunctions from normalized kernel matrix K
+
+    Arguments
+    =================
+    - K: normalized sparse kernel matrix
+    - L: number of diffusion eigenfunctions to keep
+
+"""
+function computeDiffusionEig(K::Matrix{Float64}, L::Integer = 0)
+    # TODO: test
+    η, φ = eigen(K, sortby = x -> -real(x))
+    if L > 0
+        η = η[1:L]
+        φ = φ[:,1:L]
+    end
+
+    return η, φ
+end
+
+
+"""
+    normDiffEig(φ::Matrix{Float64}, L::Integer)
+
+    normalize diffusion eigenfunctions as in 10.1016/j.acha.2017.09.001
+    
+    Arguments
+    =================
+    - φ: diffusion eigenfunctions of size s × L
+    - κ: diffusion eigenvalues as computed in computeDiffusionEig()
+
+"""
+function normDiffEig(φ::Matrix{Float64}, κ::Vector{Float64})
+    s, L = size(φ)
+    normφ = zeros(Float64, s, L)
+
+    for k = 1:L
+        normφ[:,k] = φ[:,k] ./ norm(φ[:,k])
+    end
+    normφ = normφ ./ mean(φ[:,1])
+    η = log.(κ) ./ log.(κ[1])
+
+    return normφ, η
+end
+
+
+
+"""
     diffSVD(φ::Matrix{Float64}, μ::Vector{Float64}, X::Matrix{Float64})
 
     linear operator components and singular value decomposition
@@ -107,7 +193,7 @@ end
 
     Arguments
     =================
-    - φ: takes diffusion eigenfunctions of size s × L 
+    - φ: diffusion eigenfunctions of size s × L 
     - μ: vector of size s that are the wieghts from the normW function
     - X: original data (after embedding), where dim 2 is the embedding space of size N
 
@@ -139,7 +225,7 @@ end
 
 
 """
-    diffprojection(u::Matrix{Float64}, σ::Matrix{Float64}, v::Matrix{Float64};
+    diffProjection(u::Matrix{Float64}, σ::Matrix{Float64}, v::Matrix{Float64};
     s::Integer, L::Integer, m::Integer, q::Integer)
 
     projects diffusions eigenfunctions to physical space using linear op components from SVD
@@ -158,7 +244,7 @@ end
     - q: number of delays (no delays means q = 1)
 
 """
-function diffprojection(u::Matrix{Float64}, σ::Matrix{Float64}, v::Matrix{Float64};
+function diffProjection(u::Matrix{Float64}, σ::Matrix{Float64}, v::Matrix{Float64};
      s::Integer, L::Integer, m::Integer, q::Integer)
 
     X_proj = zeros(Float64, L, m, s)
@@ -199,12 +285,12 @@ end
     - q: number of delays (no delays means q = 1)
 
 """
-function projectDiffEigs(φ::Matrix{Float64}, μ::Vector{Float64}, X::Matrix{Float64}; q::Integer = 1)
+function projectDiffEig(φ::Matrix{Float64}, μ::Vector{Float64}, X::Matrix{Float64}; q::Integer = 1)
     s, L =  size(φ) # number of samples for which temporal modes are computed, number of Laplacian eigenfunctions
     N = size(X, 2)
 
     u, σ, v = diffSVD(φ, μ, X)
-    X_proj = diffprojection(u, σ, v; s = s, L = L, m = N, q = q)
+    X_proj = diffProjection(u, σ, v; s = s, L = L, m = N, q = q)
 
     return X_proj
 end

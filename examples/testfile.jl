@@ -1,7 +1,6 @@
 # TODO test current
 # TODO projection to physical space (and reconstruction?)
 include("torusData.jl")
-include("origpaper.jl")
 include("kernels.jl")
 include("modelConstruct.jl")
 include("modelComponents.jl")
@@ -9,7 +8,7 @@ using Plots
 using Statistics
 
 
-X = Matrix(x');
+
 # testμ, testη, testφ = lapEig(X, 1., 0, 51)
 # TODO : test when NN != 0
 
@@ -50,12 +49,14 @@ P, μ = normW(W)
 # compute diffusion eigenfunctions
 κ, φ = computeDiffusionEig(P, nDiff)
 
-# normalize eigenfunctions as in from 10.1016/j.acha.2017.09.001
-normφ = zeros(size(φ))
-for k = 1:nDiff
-    normφ[:,k] = φ[:,k] ./ norm(φ[:,k])
-end
-normφ = normφ ./ mean(φ[:,1])
-η = log.(κ) ./ log.(κ[1])
+# # normalize eigenfunctions as in from 10.1016/j.acha.2017.09.001
+# normφ = zeros(size(φ))
+# for k = 1:nDiff
+#     normφ[:,k] = φ[:,k] ./ norm(φ[:,k])
+# end
+# normφ = normφ ./ mean(φ[:,1])
+# η = log.(κ) ./ log.(κ[1])
+
+normφ, η = normDiffEigs(φ)
 
 plot(dt*(1:1000), real(normφ[1:1000,2]))
