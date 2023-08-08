@@ -13,11 +13,16 @@ f = 30^0.5 # frequency along theta coordinate
 φ_rad = 0.5
 θ_rad = 0.5 
 
-# params of wanted sample
-dt = 0.05
-nS = 20 # number of spin up samples
-T = 320
+nS = 0 # number of spin up samples
+T = 32
 
+# params of wanted sample
+nST = 128;
+nT = T
+nS = nST * nT;
+dt = 2 * pi / nST; #0.05
+
+nSpin = 0
 # params of sample format (R3 or R4)
 SF = "R3"
 
@@ -36,9 +41,9 @@ else
     θ = 2*acot(sqrt(1 - θ_amp)) .+ sqrt.(θ_amp)*cot.(sqrt(θ_amp) * f .* ts ./ 2 )
 end
 
-ts = ts[nS:end]
-φ = φ[nS:end]
-θ = θ[nS:end]
+ts = ts[nSpin + 1:end]
+φ = φ[nSpin + 1:end]
+θ = θ[nSpin + 1:end]
 
 nT = size(ts, 1)
 

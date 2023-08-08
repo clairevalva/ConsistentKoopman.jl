@@ -1,19 +1,13 @@
 # TODO test current
 # TODO projection to physical space (and reconstruction?)
 include("torusData.jl")
-include("kernels.jl")
-include("modelConstruct.jl")
-include("modelComponents.jl")
+include("../src/kernels.jl")
+include("../src/utils.jl")
+include("../src/modelComponents.jl")
+include("../src/resolvent.jl")
 using Plots
 using Statistics
-
-
-
-# testμ, testη, testφ = lapEig(X, 1., 0, 51)
-# TODO : test when NN != 0
-
-# plot(real(testφ[1:1000,2]))
-# plot!(imag(testφ[1:1000,3]))
+using HDF5
 
 # write down params
 X = Matrix(x');
@@ -22,7 +16,7 @@ candidate_ϵs = 2 .^ (range(-40,40,length = 100))
 nT = size(X, 1) - 1
 symM = false
 nDiff = 50
-
+z = 1.0
 # compute distances, reset NN if necessary
 D, DN = distNN(X, NN)
 
@@ -32,31 +26,27 @@ else
     NN_bw = NN
 end
 
-
-# tune bandwith params
+# tune bandwith params, check if it worked
 useϵ, testϵ_ls = tune_bandwidth(D, DN, NN_bw, nT, candidate_ϵs)
 
-# optimal guess was epsilonOpt = 0.1408 in original NLSA 
-# plot(candidate_ϵs[1:end - 1], testϵ_ls, xaxis=:log )
-# vline!([0.1408])
+plot(candidate_ϵs[1:end - 1], testϵ_ls, xaxis=:log )
+vline!([0.1408]) # optimal guess was epsilonOpt = 0.1408 in original NLSA 
 
-# compute sparse kernel matrix
-W = sparseW_mb(X, useϵ, NN = 0)
+W = sparseW_mb(X, useϵ, NN = 0) # compute sparse kernel matrix
+P = normW2(W) # normalize matrix appropriately
+κ, φ, w = computeDiffusionEig(P, nDiff) # compute (nomalized) diffusion eigenfunctions
 
-# normalize matrix
-P, μ = normW(W)
+# now try for the Koopman stuff?
+G = Gtau(κ, 5e-5)
+Rz = resolventop_power(φ, w, 50, dt, z)
 
-# compute diffusion eigenfunctions
-κ, φ = computeDiffusionEig(P, nDiff)
+U, P = polar(Rz)
+Ptau = G * P * G
+F = eigen(Ptau)
+c = F.vectors
+γ_polar = real(F.values)
 
-# # normalize eigenfunctions as in from 10.1016/j.acha.2017.09.001
-# normφ = zeros(size(φ))
-# for k = 1:nDiff
-#     normφ[:,k] = φ[:,k] ./ norm(φ[:,k])
-# end
-# normφ = normφ ./ mean(φ[:,1])
-# η = log.(κ) ./ log.(κ[1])
+gamma = polarfz(γ_polar, z)
+frequencies = imag(1 ./gamma)
 
-normφ, η = normDiffEigs(φ)
-
-plot(dt*(1:1000), real(normφ[1:1000,2]))
+ζ = makeζ(c, φ)

@@ -65,7 +65,7 @@ end
     sparseW_mb(X::Matrix{Float64}, eps::Float64;
      NN::Integer = 0, usenorm::Function = norm, sym::Bool = true)
 
-    computes sparse kernel matrix W with gaussian multiple bandwidth kernel from given epsiolon
+    computes sparse kernel matrix W with gaussian multiple bandwidth kernel from given ϵ
 
     Arguments
     =================
@@ -135,6 +135,35 @@ function normW(X::Matrix{Float64})
 end
 
 """
+    normW(X::Matrix{Float64})
+
+    normalizes sparse kernel matrix as described in https://doi.org/10.1038/s41467-021-26357-x (instead?)
+
+    Arguments
+    =================
+    - X: square sparse kernel matrix
+
+"""
+function normW2(X::Matrix{Float64})
+    nX = size(X, 1)
+
+    D = sum(X, dims = 2)
+    D = D[:]
+    Dinv = diagm(D.^(-1))
+    
+    S = zero(D)
+    for i = 1:nX
+        S[i] = sum(X[i,:] ./ D)
+    end
+    Sneghalf = diagm(S.^(-1/2))
+
+    Khat = Dinv * X * Sneghalf
+    Ktilde = Khat * (Khat')
+
+    return Ktilde
+end
+
+"""
     computeDiffusionEig(K::Matrix{Float64}, L::Integer = 0)
 
     computes L diffusion eigenfunctions from normalized kernel matrix K
@@ -152,8 +181,9 @@ function computeDiffusionEig(K::Matrix{Float64}, L::Integer = 0)
         η = η[1:L]
         φ = φ[:,1:L]
     end
-
-    return η, φ
+    w = φ[:,1].^2
+    normφ = φ ./ φ[1,1]
+    return η, normφ, w
 end
 
 
@@ -175,12 +205,12 @@ function normDiffEig(φ::Matrix{Float64}, κ::Vector{Float64})
     for k = 1:L
         normφ[:,k] = φ[:,k] ./ norm(φ[:,k])
     end
-    normφ = normφ ./ mean(φ[:,1])
-    η = log.(κ) ./ log.(κ[1])
+    normφ = normφ ./ mean(φ[:,1]) # normalized eigenfunctions
+    η = log.(κ) ./ log.(κ[1]) # normalized eigenvalues
+    w = φ[1,:].^2 # inner product weights
 
-    return normφ, η
+    return normφ, η, w
 end
-
 
 
 """

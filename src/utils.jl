@@ -81,6 +81,7 @@ end
 
     function to symmetrize sparse kernel matrix as computed in sparseW()
 
+        on June 14 I reversed the equality, to chekc later
     Arguments
     =================
     - M: square sparse kernel matrix
@@ -92,11 +93,29 @@ function sym_M(M::Matrix{Float64})
     for i = 1:N
         for j = 2:i
             if (M[i,j] == 0) & (M[j,i] != 0)
-            elseif (M[i,j] != 0) & (M[j,i] == 0)
                 M[j,i] = M[i,j]
+            elseif (M[i,j] != 0) & (M[j,i] == 0)
+                M[i,j] = M[j,i]
             end
         end
     end
 
     return M
+end
+
+"""
+    polar(A::Matrix{Float64})
+
+    computes polar decomposition of a square matrix using svd
+    Arguments
+    =================
+    - A: square matrix
+
+"""
+function polar(A::Matrix{Float64})
+    U, S, V = svd(A)
+    B = U * V'
+    C = V * diagm(S) * V'
+
+    return B, C # B unitary, C positive semi-def hermitian
 end
