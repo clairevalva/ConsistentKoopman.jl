@@ -1,2 +1,4 @@
 /Manifest.toml
 notes.txt
+*.mat
+*.h5

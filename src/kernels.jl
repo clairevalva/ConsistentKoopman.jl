@@ -44,5 +44,18 @@ function varbandwidth_kernel(x::Vector{Float64}, y::Vector{Float64},
     xpre::Vector{Float64}, ypre::Vector{Float64}; γ = 33, ζ = 0.995)
     bandf = sepBandwidth(x,y, xpre, ypre, ζ = ζ)
     diffxy = norm(x .- y)
-    return exp.(-1*(diffxy /  (bandf * γ))^2)
+
+    # return exp.(-1*(diffxy * bandf / γ)^2)
+    return exp.(-1*(diffxy * bandf / γ)^2)
+end
+
+function varbandwidth_kernel2(x::Vector{Float64}, y::Vector{Float64},
+    xpre::Vector{Float64}, ypre::Vector{Float64}, dt::Float64; γ = 33, ζ = 0.995)
+    bandf = sepBandwidth(x,y, xpre, ypre, ζ = ζ)
+    diffxy = norm(x .- y)
+    vel1 = norm((x - xpre) ./ dt)
+    vel2 = norm((y - ypre) ./ dt)
+    
+    # return exp.(-1*(diffxy * bandf / γ)^2)
+    return exp.(-1*(diffxy^2 * bandf / (γ * vel1 * vel2)))
 end

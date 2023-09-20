@@ -1,9 +1,9 @@
 export 
-Gtau
-posfilter
-koopmanop
-polarfz
-makeζ
+    Gtau,
+    posfilter,
+    koopmanop,
+    polarfz,
+    makeζ
 
 using FFTW
 # TO DO: test everything!
@@ -16,6 +16,8 @@ using FFTW
     =================
     - η: Diffusion eigenvalues (NLSA eigenvalues), in usual descending order
     - τ: value of τ to use, must be greater than zero
+
+    tested on Sept 14, 2023
 
 """
 function Gtau(η::Vector{Float64}, τ::Float64)
@@ -45,9 +47,9 @@ function posfilter(φ::Matrix{Float64})
     s = size(φ, 1)
     L = size(φ, 2)
     f = fftfreq(s)
-    fbool = (f < 0)
+    fbool = (f .< 0)
 
-    φplus = 1j .* zero(φ)
+    φplus = 1im .* zero(φ)
 
     for r = 1:L
         ffted = fft(φ[:,r])
@@ -69,19 +71,22 @@ end
     - φ: diffusion eigenfunctions of size s × L 
     - w: inner product weight array of size s × 1
 """
-function koopmanop(shifts::Vector{Int64}, φ::Matrix{Float64}, w::Vector{Float64})
+function koopmanop(shifts::Vector{Int64}, φ::Matrix{ComplexF64}, w::Vector{Float64})
     nQ = length(shifts)
-    _ , L = size(φ)
-    U = zeros(nQ, L, L)
+    nS , L = size(φ)
+    U = 1im*zeros(nQ, L, L)
 
     for j = 1:nQ
         q = shifts[j]
 
         if q < 0
             b = abs(q)
-            U[j,:,:] = φ[b + 1:end, :]' * (φ[1:end - b, :] .* w[b + 1 : end])
+            indshift = circshift(1:nS, -1*b);
+
+            U[j,:,:] = φ[indshift, :]' * (φ[: , :] .* w[1])
         else
-            U[j,:,:] = φ[1:end - q, :]' * (φ[q + 1:end, :] .* w[1 : end - q])
+            indshift = circshift(1:nS, -1*q);
+            U[j,:,:] = φ[:, :]' * (φ[indshift, :] .* w[1])
         end
     end
 
@@ -106,7 +111,7 @@ resolventop_power(φ::Matrix{Float64}, w::Vector{Float64}, Tf::Int64, dt::Float6
     =================
     - batchN: number of batches in which to run quadrature
 """
-function resolventop_power(φ::Matrix{Float64}, w::Vector{Float64}, Tf::Int64, dt::Float64, z::Float64; batchN = 1)
+function resolventop_power(φ::Matrix{ComplexF64}, w::Vector{Float64}, Tf::Int64, dt::Float64, z::Float64; batchN = 1)
 
     U = koopmanop([1], φ, w)[1,:,:]
 
@@ -134,7 +139,7 @@ function resolventop_power(φ::Matrix{Float64}, w::Vector{Float64}, Tf::Int64, d
         eee = exp.(-1*z*ttt)
         lb = length(qqq)
         
-        Ut = zeros(lb, L, L)
+        Ut = 1im*zeros(lb, L, L)
         for k = 1:lb
             Ut[k,:,:] = U^qqq[k] .* eee[k]
         end
@@ -151,6 +156,8 @@ function polarfz(evals::Vector{Float64}, z::Float64)
     rrr = 1 / (2 * z)
     xdiv = abs.(evals/2)
     argu = xdiv ./ rrr
+    print("num of values above 1:", sum(argu .> 1))
+    argu = min.(argu ,1);
     theta = asin.(argu)
     alpha = (pi .- 2*theta) ./ 2
     lambda = evals .* exp.(1im * alpha)
@@ -158,7 +165,7 @@ function polarfz(evals::Vector{Float64}, z::Float64)
     return lambda
 end
 
-function makeζ(keigvec::Matrix{Float64}, diffeigvec::Matrix{Float64})
+function makeζ(keigvec::Matrix{ComplexF64}, diffeigvec::Matrix{Float64})
     ζ = diffeigvec * keigvec;
     return ζ
 end

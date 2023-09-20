@@ -96,12 +96,89 @@ function sparseW_mb(X::Matrix{Float64}, eps::Float64;
            k = N[i,j]
            if i != k
                 W[i, k] = varbandwidth_kernel(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], γ = eps)
+           else
+                W[i, k] = 1
            end
        end
    end
 
    if sym
        W = sym_M(W)
+   end
+
+   return W
+end
+
+function sparseW_mb_2(X::Matrix{Float64}, eps::Float64, dt::Float64;
+    NN::Integer = 0, usenorm::Function = norm, sym::Bool = true )
+   # get distances
+   _, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
+   
+   nT = size(X, 1) - 1
+   if NN == 0
+       NN = nT
+   end
+
+   W = zeros(Float64, nT, nT)
+
+   for i = 1:nT
+       for j = 1:NN
+           k = N[i,j]
+           if i != k
+                W[i, k] = varbandwidth_kernel2(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], dt, γ = eps)
+           else
+                W[i, k] = 1
+           end
+       end
+   end
+
+   if sym
+       W = sym_M(W)
+   end
+
+   return W
+end
+
+
+"""
+    sparseW_mb2(X::Matrix{Float64}, eps::Float64;
+     NN::Integer = 0, usenorm::Function = norm)
+
+    computes sparse kernel matrix W with gaussian multiple bandwidth kernel from given ϵ
+
+    Arguments
+    =================
+    - X: original data (after embedding), where dim 2 is the embedding space of size N
+    - eps: epsilon value for gaussian kernel, a strictly positive Float64
+
+    Keyword arguments
+    =================
+    - NN: nearest neighbors used
+    - usenorm: function to compute distances with, defaults to l2
+    - sym: boolean for optional operator symmetrization
+
+"""
+function sparseW_mb2(X::Matrix{Float64}, eps::Float64;
+    NN::Integer = 0, usenorm::Function = norm, sym::Bool = true)
+   # get distances
+   _, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
+   
+   nT = size(X, 1) - 1
+   if NN == 0
+       NN = nT
+   end
+
+   W = zeros(Float64, nT, nT)
+
+   for i = 1:nT
+       for j = 1:NN
+           k = N[i,j]
+           if i != k
+                W[i, k] = varbandwidth_kernel(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], γ = eps) / NN
+           else
+                W[i, k] = 1 / NN
+           end
+       end
    end
 
    return W
@@ -159,6 +236,37 @@ function normW2(X::Matrix{Float64})
 
     Khat = Dinv * X * Sneghalf
     Ktilde = Khat * (Khat')
+
+    return Ktilde
+end
+
+"""
+    normW(X::Matrix{Float64})
+
+    normalizes sparse kernel matrix as described in https://doi.org/10.1038/s41467-021-26357-x (instead?)
+
+    Arguments
+    =================
+    - X: square sparse kernel matrix
+
+"""
+function normW3(X::Matrix{Float64})
+    nX = size(X, 1)
+
+    D = sum(X, dims = 2)
+    D = D[:]
+    Dinv = diagm(D.^(-1))
+    
+    S = zero(D)
+    S = sum(X * Dinv, dims = 2)[:]
+    print(size(S))
+    # for i = 1:nX
+    #     S[i] = sum(X[i,:] ./ D)
+    # end
+    # Sneghalf = diagm(S.^(-1/2))
+
+
+    Ktilde = Dinv * X * diagm(S.^(-1/2))
 
     return Ktilde
 end
