@@ -49,7 +49,7 @@ function varbandwidth_kernel(x::Vector{Float64}, y::Vector{Float64},
     return exp.(-1*(diffxy * bandf / γ)^2)
 end
 
-function varbandwidth_kernel2(x::Vector{Float64}, y::Vector{Float64},
+function varbandwidth_kernel_cone(x::Vector{Float64}, y::Vector{Float64},
     xpre::Vector{Float64}, ypre::Vector{Float64}, dt::Float64; γ = 33, ζ = 0.995)
     bandf = sepBandwidth(x,y, xpre, ypre, ζ = ζ)
     diffxy = norm(x .- y)
@@ -59,3 +59,37 @@ function varbandwidth_kernel2(x::Vector{Float64}, y::Vector{Float64},
     # return exp.(-1*(diffxy * bandf / γ)^2)
     return exp.(-1*(diffxy^2 * bandf / (γ * vel1 * vel2)))
 end
+
+function varbandwidth_kernel_sep(x::Vector{Float64}, y::Vector{Float64}, px::Float64, py::Float64, m::Float64; γ = 33)
+    diffxy = norm(x .- y)
+    σ_sq = (px * py)^(-1/m)
+    
+    return exp.(-1*(diffxy * σ_sq / γ)^2)
+end
+
+"""
+est_ind_bandwidth(D::Matrix{Float64}, NN::Integer, nT::Integer)
+
+    https://doi.org/10.1016/j.acha.2015.01.001
+
+    Arguments
+    =================
+    - D: precomputed distances for nearest neighbors NN (from distNN)
+    - NN: number of nearest neighbors
+    - nT: total time of processed data
+
+"""
+function est_ind_bandwidth(D::Matrix{Float64}, NN::Integer, nT::Integer)
+    
+    Dsq = D.^2
+    point_density = zeros(nT)
+
+    for m = 1:nT
+        point_density[m] = (sum(Dsq[m, :]) / (NN - 1))^0.5
+    end
+
+    ϵ_0_half = sum(point_density) / nT 
+
+    return point_density, ϵ_0_half
+end
+

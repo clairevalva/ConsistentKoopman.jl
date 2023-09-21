@@ -34,35 +34,34 @@ function tune_bandwidth(D::Matrix{Float64}, DN::Matrix{Integer},
     NN::Integer, nT::Integer, epsls::Vector{Float64})
     
     Dsq = D.^2
-    ris = sum(Dsq, dims = 2) ./ (NN - 1)
+    ris, _ = est_ind_bandwidth(D, NN, nT) #sum(Dsq, dims = 2) ./ (NN - 1)
 
     nE = length(epsls)
     eps_sum = zeros(Float64, nE)
     
-    Kel_sum = 0 
     for eee in 1:nE
         eps = epsls[eee]
         for m = 1:nT
             for n = 1:NN
                 k = DN[m,n]
-                Kel_sum += exp(-1*Dsq[m,n] / (eps * ris[m] * ris[k])^2)
+                eps_sum[eee] = eps_sum[eee] + exp(-1*Dsq[m,n] / (eps * ris[m] * ris[k])^2)
                 
             end
         end
-        eps_sum[eee] = Kel_sum
+        #eps_sum[eee] = Kel_sum / (nT^2)
     end
-
+    eps_sum = eps_sum / (nT^2)
     eps_sum_l = log.(eps_sum)
     epsls_l = log.(epsls)
 
     eps_sum_prime = (eps_sum_l[2:end] - eps_sum_l[1:(end - 1)]) ./ (epsls_l[2:end] - epsls_l[1:(end - 1)])
     best_eps = epsls[argmax(eps_sum_prime)]
 
-    return best_eps, eps_sum_prime
+    return best_eps, maximum(eps_sum_prime)
 end
 
 """
-    sparseW_mb(X::Matrix{Float64}, eps::Float64;
+    sparseW_cone(X::Matrix{Float64}, eps::Float64;
      NN::Integer = 0, usenorm::Function = norm, sym::Bool = true)
 
     computes sparse kernel matrix W with gaussian multiple bandwidth kernel from given ϵ
@@ -79,7 +78,7 @@ end
     - sym: boolean for optional operator symmetrization
 
 """
-function sparseW_mb(X::Matrix{Float64}, eps::Float64;
+function sparseW_cone(X::Matrix{Float64}, eps::Float64, dt::Float64;
     NN::Integer = 0, usenorm::Function = norm, sym::Bool = true )
    # get distances
    _, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
@@ -95,37 +94,7 @@ function sparseW_mb(X::Matrix{Float64}, eps::Float64;
        for j = 1:NN
            k = N[i,j]
            if i != k
-                W[i, k] = varbandwidth_kernel(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], γ = eps)
-           else
-                W[i, k] = 1
-           end
-       end
-   end
-
-   if sym
-       W = sym_M(W)
-   end
-
-   return W
-end
-
-function sparseW_mb_2(X::Matrix{Float64}, eps::Float64, dt::Float64;
-    NN::Integer = 0, usenorm::Function = norm, sym::Bool = true )
-   # get distances
-   _, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
-   
-   nT = size(X, 1) - 1
-   if NN == 0
-       NN = nT
-   end
-
-   W = zeros(Float64, nT, nT)
-
-   for i = 1:nT
-       for j = 1:NN
-           k = N[i,j]
-           if i != k
-                W[i, k] = varbandwidth_kernel2(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], dt, γ = eps)
+                W[i, k] = varbandwidth_kernel_cone(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], dt, γ = eps)
            else
                 W[i, k] = 1
            end
@@ -141,8 +110,8 @@ end
 
 
 """
-    sparseW_mb2(X::Matrix{Float64}, eps::Float64;
-     NN::Integer = 0, usenorm::Function = norm)
+    sparseW_cone(X::Matrix{Float64}, eps::Float64;
+     NN::Integer = 0, usenorm::Function = norm, sym::Bool = true)
 
     computes sparse kernel matrix W with gaussian multiple bandwidth kernel from given ϵ
 
@@ -158,15 +127,18 @@ end
     - sym: boolean for optional operator symmetrization
 
 """
-function sparseW_mb2(X::Matrix{Float64}, eps::Float64;
-    NN::Integer = 0, usenorm::Function = norm, sym::Bool = true)
+function sparseW_sepband(X::Matrix{Float64}, eps::Float64, m̂::Float64, 
+     D::Matrix{Float64}, N::Matrix{Integer}; NN::Integer = 0, sym::Bool = true )
    # get distances
-   _, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
+   # D, N = distNN(X, NN, usenorm = usenorm)
    
-   nT = size(X, 1) - 1
+   nT = size(X, 1)
    if NN == 0
        NN = nT
    end
+
+   point_density, _  = est_ind_bandwidth(D, NN, nT)
+   m = m̂ / 2
 
    W = zeros(Float64, nT, nT)
 
@@ -174,42 +146,50 @@ function sparseW_mb2(X::Matrix{Float64}, eps::Float64;
        for j = 1:NN
            k = N[i,j]
            if i != k
-                W[i, k] = varbandwidth_kernel(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], γ = eps) / NN
+                W[i, k] = varbandwidth_kernel_sep(X[i,:], X[k,:], point_density[i], point_density[k], m, γ = eps)
            else
-                W[i, k] = 1 / NN
+                W[i, k] = 1
            end
        end
+   end
+
+   if sym
+       W = sym_M(W)
    end
 
    return W
 end
 
+# function sparseW_mb(X::Matrix{Float64}, eps::Float64;
+#     NN::Integer = 0, usenorm::Function = norm, sym::Bool = true )
+#    # get distances
+#    _, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
+   
+#    nT = size(X, 1) - 1
+#    if NN == 0
+#        NN = nT
+#    end
 
-"""
-    normW(X::Matrix{Float64})
+#    W = zeros(Float64, nT, nT)
 
-    normalizes sparse kernel matrix as described in 10.1016/j.acha.2017.09.001
+#    for i = 1:nT
+#        for j = 1:NN
+#            k = N[i,j]
+#            if i != k
+#                 W[i, k] = varbandwidth_kernel(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], γ = eps)
+#            else
+#                 W[i, k] = 1
+#            end
+#        end
+#    end
 
-    Arguments
-    =================
-    - X: square sparse kernel matrix
+#    if sym
+#        W = sym_M(W)
+#    end
 
-"""
-function normW(X::Matrix{Float64})
-    nX = size(X, 1)
-    Q = sum(X, dims = 2)
-    Qdiv = Q * Q'
-    X = X ./ Qdiv
+#    return W
+# end
 
-    Q = sum(X, dims = 1)
-    for i = 1:nX
-        X[i,:] = X[i,:] ./ Q[i]
-    end
-    # µ is a vector of size s with the property µP = µ
-    μ = Q ./ sum(Q)
-
-    return X, μ
-end
 
 """
     normW(X::Matrix{Float64})
@@ -221,7 +201,7 @@ end
     - X: square sparse kernel matrix
 
 """
-function normW2(X::Matrix{Float64})
+function normW(X::Matrix{Float64})
     nX = size(X, 1)
 
     D = sum(X, dims = 2)
@@ -236,37 +216,6 @@ function normW2(X::Matrix{Float64})
 
     Khat = Dinv * X * Sneghalf
     Ktilde = Khat * (Khat')
-
-    return Ktilde
-end
-
-"""
-    normW(X::Matrix{Float64})
-
-    normalizes sparse kernel matrix as described in https://doi.org/10.1038/s41467-021-26357-x (instead?)
-
-    Arguments
-    =================
-    - X: square sparse kernel matrix
-
-"""
-function normW3(X::Matrix{Float64})
-    nX = size(X, 1)
-
-    D = sum(X, dims = 2)
-    D = D[:]
-    Dinv = diagm(D.^(-1))
-    
-    S = zero(D)
-    S = sum(X * Dinv, dims = 2)[:]
-    print(size(S))
-    # for i = 1:nX
-    #     S[i] = sum(X[i,:] ./ D)
-    # end
-    # Sneghalf = diagm(S.^(-1/2))
-
-
-    Ktilde = Dinv * X * diagm(S.^(-1/2))
 
     return Ktilde
 end

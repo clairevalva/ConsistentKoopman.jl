@@ -22,7 +22,7 @@ U = others["U"][:,:]
 P = others["P"][:,:]
 c = others["c"][:,:]
 frequencies = others["frequencies"][:,:]
-G = others["G"][:,:]
+G_old = others["G"][:,:]
 
 newX = h5open("/Users/clairevalva/codez/NLSA/x_orig.mat", "r")["x"][:,:]
 

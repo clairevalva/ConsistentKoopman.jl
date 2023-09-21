@@ -36,15 +36,15 @@ useϵ, testϵ_ls = tune_bandwidth(D, DN, NN_bw, nT, candidate_ϵs)
 plot(candidate_ϵs[1:end - 1], testϵ_ls, xaxis=:log )
 vline!([0.1408, useϵ]) # optimal guess was epsilonOpt = 0.1408 in original NLSA 
 
-W = sparseW_mb_2(X, useϵ, usedt, NN = NN, sym = false)
-P = normW2(W) # normalize matrix appropriately
+W = sparseW_mb(X, useϵ, usedt, NN = NN, sym = false)
+P = normW(W) # normalize matrix appropriately
 κ, φ, w = computeDiffusionEig(P, nDiff) # compute (nomalized) diffusion eigenfunctions
 
 
-φ_plus = posfilter(φ_old)
-plot((1:4000)*dt, real(φ_plus[1:4000,8]))
-plot!((1:4000)*dt, imag(φ_plus[1:4000,8]))
-xlims!(0,5)
+# φ_plus = posfilter(φ_old)
+# plot((1:4000)*dt, real(φ_plus[1:4000,8]))
+# plot!((1:4000)*dt, imag(φ_plus[1:4000,8]))
+# xlims!(0,5)
 
 φ_plus = posfilter(φ)
 plot((1:4000)*dt, real(φ_plus[1:4000,6]))
