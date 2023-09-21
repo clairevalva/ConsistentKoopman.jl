@@ -2,11 +2,14 @@ export
     Gtau,
     posfilter,
     koopmanop,
-    polarfz,
-    makeζ
+    resolventop_power,
+    makeζ,
+    ainv,
+    ρinv,
+    computeSeigs
 
-using FFTW
-# TO DO: test everything!
+
+
 """
     Gtau(η::Vector{Float64}, τ::Float64)
 
@@ -42,6 +45,8 @@ end
     Arguments
     =================
     - φ: diffusion eigenfunctions of size s × L 
+
+    tested on Sept 14, 2023
 """
 function posfilter(φ::Matrix{Float64})
     s = size(φ, 1)
@@ -70,6 +75,8 @@ end
     - shifts: a vector of shifts to apply, if only one give as a vector, i.e. [3] because I am very lazy 
     - φ: diffusion eigenfunctions of size s × L 
     - w: inner product weight array of size s × 1
+
+    tested on Sept 14, 2023
 """
 function koopmanop(shifts::Vector{Int64}, φ::Matrix{ComplexF64}, w::Vector{Float64})
     nQ = length(shifts)
@@ -110,6 +117,8 @@ resolventop_power(φ::Matrix{Float64}, w::Vector{Float64}, Tf::Int64, dt::Float6
     Keyword arguments
     =================
     - batchN: number of batches in which to run quadrature
+
+    tested on Sept 14, 2023
 """
 function resolventop_power(φ::Matrix{ComplexF64}, w::Vector{Float64}, Tf::Int64, dt::Float64, z::Float64; batchN = 1)
 
@@ -151,20 +160,6 @@ function resolventop_power(φ::Matrix{ComplexF64}, w::Vector{Float64}, Tf::Int64
     return I
 end
 
-
-function polarfz(evals::Vector{Float64}, z::Float64)
-    rrr = 1 / (2 * z)
-    xdiv = abs.(evals/2)
-    argu = xdiv ./ rrr
-    print("num of values above 1:", sum(argu .> 1))
-    argu = min.(argu ,1);
-    theta = asin.(argu)
-    alpha = (pi .- 2*theta) ./ 2
-    lambda = evals .* exp.(1im * alpha)
-
-    return lambda
-end
-
 function makeζ(keigvec::Matrix{ComplexF64}, diffeigvec::Matrix{Float64})
     ζ = diffeigvec * keigvec;
     return ζ
@@ -195,8 +190,8 @@ function computeSeigs(R::Matrix{ComplexF64}, G::Matrix{Float64}, z::Float64, N::
     Ψ = φ' * ψ / nT
     Ψ_bar = conj.(Ψ)
 
-    S_plus = Ψ[:, 2:mKoop] * diagm(s[2:mKoop]) * Ψ[:, 2:mKoop]'
-    S_minus = -1*Ψ_bar[:, 2:mKoop] * diagm(s[2:mKoop]) * Ψ_bar[:, 2:mKoop]'
+    S_plus = Ψ[:, 2:M] * diagm(s[2:M]) * Ψ[:, 2:M]'
+    S_minus = -1*Ψ_bar[:, 2:M] * diagm(s[2:M]) * Ψ_bar[:, 2:M]'
     S = S_plus + S_minus
 
     S_eig = eigen(S)

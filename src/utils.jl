@@ -2,8 +2,9 @@ export
     delayembed,
     distNN,
     sym_M,
+    polar,
+    crosscorrcomplex,
     sortautocorr
-
 
 """
     delayembed(X, numdelays::Int)

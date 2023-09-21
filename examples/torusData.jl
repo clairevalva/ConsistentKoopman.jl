@@ -8,7 +8,7 @@ f = 30^0.5 # frequency along theta coordinate
 θ_rad = 0.5 
 
 nS = 0 # number of spin up samples
-T = 100
+T = 320
 
 # params of wanted sample
 nST = 128;
@@ -17,7 +17,7 @@ dt = 2 * pi / nST; #0.05
 
 nSpin = 0
 # params of sample format (R3 or R4)
-SF = "R4"
+SF = "R3"
 
 ts = 0:dt:(nS*dt)
 

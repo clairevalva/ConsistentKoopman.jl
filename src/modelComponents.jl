@@ -1,13 +1,11 @@
 export 
     tune_bandwidth,
-    sparseW_mb,
+    sparseW_sepband,
     normW,
     computeDiffusionEig,
-    normDiffEig,
     diffSVD,
     diffProjection,
     projectDiffEig
-
 
 """
     tune_bandwidth(D::Matrix{Float64},
@@ -48,7 +46,6 @@ function tune_bandwidth(D::Matrix{Float64}, DN::Matrix{Integer},
                 
             end
         end
-        #eps_sum[eee] = Kel_sum / (nT^2)
     end
     eps_sum = eps_sum / (nT^2)
     eps_sum_l = log.(eps_sum)
@@ -60,70 +57,23 @@ function tune_bandwidth(D::Matrix{Float64}, DN::Matrix{Integer},
     return best_eps, maximum(eps_sum_prime)
 end
 
-"""
-    sparseW_cone(X::Matrix{Float64}, eps::Float64;
-     NN::Integer = 0, usenorm::Function = norm, sym::Bool = true)
 
-    computes sparse kernel matrix W with gaussian multiple bandwidth kernel from given ϵ
+"""
+    sparseW_sepband(X::Matrix{Float64}, eps::Float64, m̂::Float64, 
+    D::Matrix{Float64}, N::Matrix{Integer}; NN::Integer = 0, sym::Bool = true)
+
+    computes sparse kernel matrix W with gaussian multiple bandwidth kernel from given ϵ, see 10.1038/s41467-021-26357-x supplement and references therein
 
     Arguments
     =================
     - X: original data (after embedding), where dim 2 is the embedding space of size N
     - eps: epsilon value for gaussian kernel, a strictly positive Float64
+    - m̂: estimate value of dimension x2
+    - D: distance matrix, with distance info given by matrix N
 
     Keyword arguments
     =================
     - NN: nearest neighbors used
-    - usenorm: function to compute distances with, defaults to l2
-    - sym: boolean for optional operator symmetrization
-
-"""
-function sparseW_cone(X::Matrix{Float64}, eps::Float64, dt::Float64;
-    NN::Integer = 0, usenorm::Function = norm, sym::Bool = true )
-   # get distances
-   _, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
-   
-   nT = size(X, 1) - 1
-   if NN == 0
-       NN = nT
-   end
-
-   W = zeros(Float64, nT, nT)
-
-   for i = 1:nT
-       for j = 1:NN
-           k = N[i,j]
-           if i != k
-                W[i, k] = varbandwidth_kernel_cone(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], dt, γ = eps)
-           else
-                W[i, k] = 1
-           end
-       end
-   end
-
-   if sym
-       W = sym_M(W)
-   end
-
-   return W
-end
-
-
-"""
-    sparseW_cone(X::Matrix{Float64}, eps::Float64;
-     NN::Integer = 0, usenorm::Function = norm, sym::Bool = true)
-
-    computes sparse kernel matrix W with gaussian multiple bandwidth kernel from given ϵ
-
-    Arguments
-    =================
-    - X: original data (after embedding), where dim 2 is the embedding space of size N
-    - eps: epsilon value for gaussian kernel, a strictly positive Float64
-
-    Keyword arguments
-    =================
-    - NN: nearest neighbors used
-    - usenorm: function to compute distances with, defaults to l2
     - sym: boolean for optional operator symmetrization
 
 """
@@ -146,7 +96,7 @@ function sparseW_sepband(X::Matrix{Float64}, eps::Float64, m̂::Float64,
        for j = 1:NN
            k = N[i,j]
            if i != k
-                W[i, k] = varbandwidth_kernel_sep(X[i,:], X[k,:], point_density[i], point_density[k], m, γ = eps)
+                W[i, k] = sepbw_kernel(X[i,:], X[k,:], point_density[i], point_density[k], m, γ = eps)
            else
                 W[i, k] = 1
            end
@@ -160,41 +110,11 @@ function sparseW_sepband(X::Matrix{Float64}, eps::Float64, m̂::Float64,
    return W
 end
 
-# function sparseW_mb(X::Matrix{Float64}, eps::Float64;
-#     NN::Integer = 0, usenorm::Function = norm, sym::Bool = true )
-#    # get distances
-#    _, N = distNN(X[1:(end - 1),:], NN, usenorm = usenorm)
-   
-#    nT = size(X, 1) - 1
-#    if NN == 0
-#        NN = nT
-#    end
-
-#    W = zeros(Float64, nT, nT)
-
-#    for i = 1:nT
-#        for j = 1:NN
-#            k = N[i,j]
-#            if i != k
-#                 W[i, k] = varbandwidth_kernel(X[i + 1,:], X[k + 1,:], X[i,:], X[k,:], γ = eps)
-#            else
-#                 W[i, k] = 1
-#            end
-#        end
-#    end
-
-#    if sym
-#        W = sym_M(W)
-#    end
-
-#    return W
-# end
-
 
 """
     normW(X::Matrix{Float64})
 
-    normalizes sparse kernel matrix as described in https://doi.org/10.1038/s41467-021-26357-x (instead?)
+    normalizes sparse kernel matrix as described in https://doi.org/10.1038/s41467-021-26357-x 
 
     Arguments
     =================
@@ -214,10 +134,10 @@ function normW(X::Matrix{Float64})
     end
     Sneghalf = diagm(S.^(-1/2))
 
-    Khat = Dinv * X * Sneghalf
-    Ktilde = Khat * (Khat')
+    K̂ = Dinv * X * Sneghalf
+    K̃ = K̂ * (K̂')
 
-    return Ktilde
+    return K̃
 end
 
 """
@@ -245,38 +165,12 @@ end
 
 
 """
-    normDiffEig(φ::Matrix{Float64}, L::Integer)
-
-    normalize diffusion eigenfunctions as in 10.1016/j.acha.2017.09.001
-    
-    Arguments
-    =================
-    - φ: diffusion eigenfunctions of size s × L
-    - κ: diffusion eigenvalues as computed in computeDiffusionEig()
-
-"""
-function normDiffEig(φ::Matrix{Float64}, κ::Vector{Float64})
-    s, L = size(φ)
-    normφ = zeros(Float64, s, L)
-
-    for k = 1:L
-        normφ[:,k] = φ[:,k] ./ norm(φ[:,k])
-    end
-    normφ = normφ ./ mean(φ[:,1]) # normalized eigenfunctions
-    η = log.(κ) ./ log.(κ[1]) # normalized eigenvalues
-    w = φ[1,:].^2 # inner product weights
-
-    return normφ, η, w
-end
-
-
-"""
     diffSVD(φ::Matrix{Float64}, μ::Vector{Float64}, X::Matrix{Float64})
+
+    UNTESTED 
 
     linear operator components and singular value decomposition
     as in algorithm that starts on line 15 of supplement of 10.1073/pnas.1118984109
-    TODO: test
-
 
     Arguments
     =================
@@ -315,9 +209,10 @@ end
     diffProjection(u::Matrix{Float64}, σ::Matrix{Float64}, v::Matrix{Float64};
     s::Integer, L::Integer, m::Integer, q::Integer)
 
+    UNTESTED 
+
     projects diffusions eigenfunctions to physical space using linear op components from SVD
     (i.e. results of diffSVD), from appendix of 10.1073/pnas.1118984109
-    TODO: test
 
     Arguments
     =================
@@ -357,9 +252,10 @@ end
 """
     projectDiffEigs(φ::Matrix{Float64}, μ::Vector{Float64}, X::Matrix{Float64}, q::Integer = 1)
 
+    UNTESTED
+
     computes projection of diffusion eigenvalues to physical space,
     from 10.1073/pnas.1118984109
-    TODO: test
 
     Arguments
     =================
