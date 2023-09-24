@@ -2,8 +2,9 @@ export
     delayembed,
     distNN,
     sym_M,
+    polar,
+    crosscorrcomplex,
     sortautocorr
-
 
 """
     delayembed(X, numdelays::Int)
@@ -156,7 +157,7 @@ end
 
 """
 
-function sortautocorr(ζ::Matrix{ComplexF64}, frequencies::Vector{Float64}, nLags::Int64, dt::Float64, Flim::Float64 = 30., returnall = false)
+function sortautocorr(ζ::Matrix{ComplexF64}, frequencies::Vector{Float64}, nLags::Int64, dt::Float64; Flim::Float64 = 30., returnall = false)
     L = size(ζ, 2)
     acs = 1im*zeros(nLags + 1, L)
     goalacs = 1im*zeros(nLags + 1, L)

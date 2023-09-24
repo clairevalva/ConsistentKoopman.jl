@@ -8,7 +8,7 @@ f = 30^0.5 # frequency along theta coordinate
 θ_rad = 0.5 
 
 nS = 0 # number of spin up samples
-T = 320
+T = 200
 
 # params of wanted sample
 nST = 128;
@@ -17,7 +17,7 @@ dt = 2 * pi / nST; #0.05
 
 nSpin = 0
 # params of sample format (R3 or R4)
-SF = "R4"
+SF = "R3"
 
 ts = 0:dt:(nS*dt)
 
@@ -60,5 +60,5 @@ else
     println("unimplemented sample format, try 'R3' or 'R4' ")
 end
 
-plot(ts, x')
+# plot(ts, x')
 # xlims!(1,2000)
