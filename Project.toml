@@ -1,4 +1,4 @@
-name = "NLSA"
+name = "ConsistentKoopman"
 uuid = "e2e491fc-7d8f-4591-840c-7964746acd08"
 authors = ["clairevalva <clairev@nyu.edu> and contributors"]
 version = "0.1.0"
