@@ -1,1 +1,2 @@
-# NLSA
+# Consistent Koopman
+Julia implementations for consistent (spectral) approximations of Koopman operators, following [arXiv:2309.00732](https://doi.org/10.48550/arXiv.2309.00732) that includes a _very_ limited implementation of nonlinear Laplacian spectral analysis or NLSA and related kernel algorithms. (The full and original package — implemented in Matlab — can be found here: [NLSA](https://github.com/dg227/NLSA). 
