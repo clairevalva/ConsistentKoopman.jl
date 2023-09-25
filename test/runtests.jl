@@ -1,6 +1,6 @@
-using NLSA
+using ConsistentKoopman
 using Test
 
-@testset "NLSA.jl" begin
+@testset "ConsistentKoopman.jl" begin
     # Write your tests here.
 end
