@@ -1,4 +1,5 @@
-using ConsistentKoopman
+include("../src/ConsistentKoopman.jl")
+using .ConsistentKoopman
 include("torusData.jl")
 
 
