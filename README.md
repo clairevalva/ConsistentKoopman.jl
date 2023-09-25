@@ -5,5 +5,4 @@ See the examples folder [and flattorus.jl](https://github.com/clairevalva/Consis
 $$\Phi^t: \mathbf{T}^2 \to \mathbf{T}^2,  \Phi^t(\theta_1, \theta_2) = (\theta_1 + \alpha_1 t, \theta_2 + \alpha_2 t)  \mathrm{mod} 2\pi$$
 for which eigenfunctions should resemble fourier modes and the eigenvalues should be integer linear combinations of $\alpha_1$ and $\alpha_2$.
 
-
-
+Further functionality — kernel options and more computational batching flexibility, for when memory is more limited/large datasets — to be added.
