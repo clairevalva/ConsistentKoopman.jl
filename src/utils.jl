@@ -57,9 +57,9 @@ end
 
 """
 function distNN(X::Matrix{Float64}, NN::Integer = 0; usenorm::Function = norm)
-    nT, _ = size(X)
+    _, nT = size(X)
     D = zeros(Float64, nT, nT)
-    N = zeros(Integer, nT, nT)
+    N = zeros(Int, nT, nT)
 
     if NN == 0
         # if no nearest neighbors specified, keep all of them
@@ -69,7 +69,7 @@ function distNN(X::Matrix{Float64}, NN::Integer = 0; usenorm::Function = norm)
     for i = 1:nT
         d = zeros(Float64, nT)
         for j = 1:nT
-            d[j] = usenorm(X[i,:] .- X[j,:])
+            d[j] = usenorm(X[:, i] .- X[:, j])
         end
         inds = sortperm(d)[1:NN]
         D[i,1:NN], N[i,1:NN] = d[inds], inds
@@ -89,16 +89,29 @@ end
     - M: square sparse kernel matrix
 
 """
-function sym_M(M::Matrix{Float64})
-    N = size(M,1)
+# function sym_M(M::Matrix{Float64})
+function sym_M(M)
+    # N = size(M,1)
     # TO DO
-    for i = 1:N
-        for j = 2:i
-            if (M[i,j] == 0) & (M[j,i] != 0)
-                M[j,i] = M[i,j]
-            elseif (M[i,j] != 0) & (M[j,i] == 0)
+    # for i = 1:N
+    #     for j = 2:i
+    #         if (M[i,j] == 0) & (M[j,i] != 0)
+    #             M[j,i] = M[i,j]
+    #         elseif (M[i,j] != 0) & (M[j,i] == 0)
+    #             M[i,j] = M[j,i]
+    #         end
+    #     end
+    # end
+
+    for col in 1:size(M, 2)
+        for r in nzrange(M, col)
+            j = rowvals(M)[r]
+            i = col
+
+            if (M[i,j] != 0) & (M[j,i] == 0)
                 M[i,j] = M[j,i]
             end
+            # println(rowvals(A)[r], ' ', col, ' ',  nonzeros(A)[r])
         end
     end
 

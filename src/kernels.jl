@@ -25,16 +25,16 @@ end
 
 function conebw(x::Vector{Float64}, y::Vector{Float64},
      xpre::Vector{Float64}, ypre::Vector{Float64}; ζ = 0.995)
-    # from appendix in Froyland paper: 10.1038/s41467-021-26357-x
+    # from appendix in Froyland paper: 10.1038/s41467-021-26357-x, this is \frac{1}{σ{x_i, x_j}}
     
     vx = x .- xpre
     vy = y .- ypre
 
-    vx = vx / norm(vx)
-    vy = vy / norm(vy)
+    vx = vx / euclidean(vx)
+    vy = vy / euclidean(vy)
 
     diffxy = x .- y
-    diffxy = diffxy / norm(diffxy)
+    diffxy = diffxy / euclidean(diffxy)
     
     cθ1 = -vx' * diffxy
     cθ2 = vy' * diffxy
@@ -43,11 +43,12 @@ function conebw(x::Vector{Float64}, y::Vector{Float64},
 end
 
 function conebw_kernel(x::Vector{Float64}, y::Vector{Float64},
-    xpre::Vector{Float64}, ypre::Vector{Float64}, dt::Float64; γ = 33, ζ = 0.995)
+    xpre::Vector{Float64}, ypre::Vector{Float64}; γ = 33, ζ = 0.995)
+    ## this is good for cliamte stuff?
     bandf = conebw(x,y, xpre, ypre, ζ = ζ)
-    diffxy = norm(x .- y)
+    diffxy = euclidean(x .- y)
     
-    return exp.(-1*(diffxy * bandf / γ)^2)
+    return exp.(-1*(diffxy * bandf / γ)^2) 
 end
 
 function sepbw_kernel(x::Vector{Float64}, y::Vector{Float64}, px::Float64, py::Float64, m::Float64; γ = 33)

@@ -1,5 +1,4 @@
-include("../src/ConsistentKoopman.jl")
-using .ConsistentKoopman
+using ConsistentKoopman
 include("torusData.jl")
 
 
@@ -19,7 +18,7 @@ mKoop = ceil(Int64, nKoop / 3)
 z = 1.0
 τ = 1e-4
 koopmodel = makeParamsKoop(NLSAresults, nKoop, mKoop, z, τ )
-koopresults = doKoopman(koopmodel)
+koopresults, Rz = doKoopman(koopmodel)
 
 ω, ζ = koopresults.ω, koopresults.ζ
 max_eps, sortinds = sortautocorr(ζ, ω, 1000, usedt, returnall = false)

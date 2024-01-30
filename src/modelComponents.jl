@@ -82,7 +82,7 @@ function sparseW_sepband(X::Matrix{Float64}, eps::Float64, m̂::Float64,
    # get distances
    # D, N = distNN(X, NN, usenorm = usenorm)
    
-   nT = size(X, 1)
+   nT = size(X, 2)
    if NN == 0
        NN = nT
    end
@@ -90,26 +90,113 @@ function sparseW_sepband(X::Matrix{Float64}, eps::Float64, m̂::Float64,
    point_density, _  = est_ind_bandwidth(D, NN, nT)
    m = m̂ / 2
 
-   W = zeros(Float64, nT, nT)
+   # W = zeros(Float64, nT, nT)
+   # believing reddit for sparse matrices purposes
+   rows = Int64[]
+   cols = Int64[]
+   vals = Float64[]
 
    for i = 1:nT
        for j = 1:NN
            k = N[i,j]
+           push!(rows, i)
+           push!(cols, k)
            if i != k
-                W[i, k] = sepbw_kernel(X[i,:], X[k,:], point_density[i], point_density[k], m, γ = eps)
+                wik = sepbw_kernel(X[:, i], X[:, k], point_density[i], point_density[k], m, γ = eps)
+                if abs(wik) > 1e-16
+                    push!(vals, wik)
+                else
+                    push!(vals, 0.0)
+                    # print("hi")
+                end
            else
-                W[i, k] = 1
+                push!(vals, 1)
+                #W[i, k] = 1
            end
        end
    end
 
+   W = dropzeros(sparse(rows, cols, vals, nT, nT))
+
    if sym
-       W = sym_M(W)
+        if ~all(isapprox.(W - W', 0; rtol=1e-16))
+            W = sym_M(W)
+        end
    end
 
    return W
 end
 
+"""
+    sparseW_cone(X::Matrix{Float64}, eps::Float64, m̂::Float64, 
+    D::Matrix{Float64}, N::Matrix{Integer}; NN::Integer = 0, sym::Bool = true)
+
+    computes cone kernel kernel matrix W with gaussian multiple bandwidth kernel from given ϵ, see 10.1038/s41467-021-26357-x supplement and references therein
+
+    Arguments
+    =================
+    - X: original data (after embedding), where dim 2 is the embedding space of size N
+    - eps: epsilon value for gaussian kernel, a strictly positive Float64
+    - m̂: estimate value of dimension x2
+    - D: distance matrix, with distance info given by matrix N
+
+    Keyword arguments
+    =================
+    - NN: nearest neighbors used
+    - sym: boolean for optional operator symmetrization
+
+"""
+function sparseW_cone(X::Matrix{Float64}, eps::Float64, m̂::Float64, 
+     D::Matrix{Float64}, N::Matrix{Integer}, dt::Float64; NN::Integer = 0, sym::Bool = true )
+   # get distances
+   # D, N = distNN(X, NN, usenorm = usenorm)
+   
+   nT = size(X, 1)
+   if NN == 0
+       NN = nT
+   end
+
+#    point_density, _  = est_ind_bandwidth(D, NN, nT)
+#    m = m̂ / 2
+
+   # W = zeros(Float64, nT, nT)
+   # believing reddit for sparse matrices purposes
+   rows = Int64[]
+   cols = Int64[]
+   vals = Float64[]
+
+   for i = 1:nT
+       for j = 1:NN
+           k = N[i,j]
+           push!(rows, i)
+           push!(cols, k)
+           if i != k
+                # wik = sepbw_kernel(X[i,:], X[k,:], point_density[i], point_density[k], m, γ = eps)
+
+                wik = conebw_kernel(X[i,:], X[k,:], X[i - 1,:], X[k - 1,:], dt)
+                if abs(wik) > 1e-16
+                    push!(vals, wik)
+                else
+                    push!(vals, 0.0)
+                    # print("hi")
+                end
+           else
+                push!(vals, 1)
+                #W[i, k] = 1
+           end
+       end
+   end
+
+   W = dropzeros(sparse(rows, cols, vals, nT, nT))
+
+   if sym
+        if ~all(isapprox.(W - W', 0; rtol=1e-16))
+            W = sym_M(W)
+        end
+   end
+
+   return W
+end
 
 """
     normW(X::Matrix{Float64})
@@ -121,18 +208,19 @@ end
     - X: square sparse kernel matrix
 
 """
-function normW(X::Matrix{Float64})
+function normW(X::Union{Matrix{Float64}, SparseMatrixCSC{Float64, Int64}})
     nX = size(X, 1)
 
     D = sum(X, dims = 2)
     D = D[:]
-    Dinv = diagm(D.^(-1))
+    Dinv = Diagonal(D.^(-1))    
     
-    S = zero(D)
-    for i = 1:nX
-        S[i] = sum(X[i,:] ./ D)
-    end
-    Sneghalf = diagm(S.^(-1/2))
+    # S = zero(D)
+    # for i = 1:nX
+    #     S[i] = sum(X[i,:] ./ D)
+    # end
+    S = sum(X ./ (D'), dims = 1)[:]
+    Sneghalf = Diagonal(S.^(-1/2))
 
     K̂ = Dinv * X * Sneghalf
     K̃ = K̂ * (K̂')
@@ -140,8 +228,8 @@ function normW(X::Matrix{Float64})
     return K̃
 end
 
-"""
-    computeDiffusionEig(K::Matrix{Float64}, L::Integer = 0)
+ """
+    computeDiffusionEig(K::Union{Matrix{Float64},SparseMatrixCSC{Float64, Int64}}, L::Integer = 0)
 
     computes L diffusion eigenfunctions from normalized kernel matrix K
 
@@ -151,8 +239,11 @@ end
     - L: number of diffusion eigenfunctions to keep
 
 """
-function computeDiffusionEig(K::Matrix{Float64}, L::Integer = 0)
+function computeDiffusionEig(K::Union{Matrix{Float64},SparseMatrixCSC{Float64, Int64}} , L::Integer = 0)
     # TODO: test
+    if K isa SparseMatrixCSC{Float64, Int64}
+        K = Matrix(K)
+    end
     η, φ = eigen(K, sortby = x -> -real(x))
     if L > 0
         η = η[1:L]

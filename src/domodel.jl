@@ -28,7 +28,7 @@ function doNLSA(params::paramsNLSA)
     candidate_ϵs = params.candidate_ϵs
     nDiff = params.nDiff
 
-    nT = size(X, 1)
+    nT = size(X, 2)
 
     if NN == 0
         NN_bw = nT
@@ -36,9 +36,14 @@ function doNLSA(params::paramsNLSA)
         NN_bw = NN
     end
 
+    print("computing distances")
     D, DN = distNN(X, NN)
+    print("computing bandwidth")
     useϵ, m̂ = tune_bandwidth(D, DN, NN_bw, nT, candidate_ϵs)
+    print("sparceW")
     W = sparseW_sepband(X, useϵ, m̂, D, DN, NN = NN, sym = true)
+    W = sparse(W)
+    print("normW")
     P = normW(W)
     κ, φ, w = computeDiffusionEig(P, nDiff)
 
@@ -97,5 +102,5 @@ function doKoopman(params::paramsKoop)
     Rz = resolventop_power(φ_plus, w, 50, dt, z)[1:nKoop, 1:nKoop]
     ω, ζ, c = computeSeigs(Rz, G, z, nKoop, mKoop, φ)
 
-    return eigsKoop(params, ω, ζ, c)
+    return eigsKoop(params, ω, ζ, c), Rz
 end
