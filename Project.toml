@@ -15,11 +15,12 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 FFTW = "1"
-GR = "0.72"
+GR = "0.72, 0.73"
 KernelFunctions = "0.10"
 MAT = "0.10"
-StatsBase = "0.34"
 Plots = "1"
+Statistics = "1"
+StatsBase = "0.34"
 julia = "1"
 
 [extras]
