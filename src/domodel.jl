@@ -22,7 +22,7 @@ struct eigsNLSA
     w::Vector{Float64}
 end
 
-function doNLSA(params::paramsNLSA)
+function doNLSA(params::paramsNLSA, kernel_choice)
     X = params.srcdata
     NN = params.NN
     candidate_ϵs = params.candidate_ϵs
@@ -40,8 +40,12 @@ function doNLSA(params::paramsNLSA)
     D, DN = distNN(X, NN)
     print("computing bandwidth")
     useϵ, m̂ = tune_bandwidth(D, DN, NN_bw, nT, candidate_ϵs)
-    print("sparceW")
-    W = sparseW_sepband(X, useϵ, m̂, D, DN, NN = NN, sym = true)
+    print("sparseW")
+    if kernel_choice == "cone"
+        W = sparseW_cone(X, useϵ, m̂, D, DN, NN = NN, sym = true)
+    else 
+        W = sparseW_sepband(X, useϵ, m̂, D, DN, NN = NN, sym = true)
+    end
     W = sparse(W)
     print("normW")
     P = normW(W)

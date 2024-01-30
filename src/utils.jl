@@ -56,23 +56,31 @@ end
     - usenorm: specify the distance norm to use, defaults to l2 
 
 """
-function distNN(X::Matrix{Float64}, NN::Integer = 0; usenorm::Function = norm)
+function distNN(X::Matrix{Float64}, NN::Integer = 0; usenorm = euclidean)
     _, nT = size(X)
     D = zeros(Float64, nT, nT)
     N = zeros(Int, nT, nT)
 
     if NN == 0
         # if no nearest neighbors specified, keep all of them
+        println("here")
         NN = nT
-    end
-
-    for i = 1:nT
-        d = zeros(Float64, nT)
-        for j = 1:nT
-            d[j] = usenorm(X[:, i] .- X[:, j])
+        for i = 1:nT
+            N[:,i] = collect(1:nT)
+            for j = 1:(i-1)
+                D[j,i] = euclidean(X[:,j], X[:,i])
+            end
         end
-        inds = sortperm(d)[1:NN]
-        D[i,1:NN], N[i,1:NN] = d[inds], inds
+    else
+
+        for i = 1:nT
+            d = zeros(Float64, nT)
+            for j = 1:nT
+                d[j] = usenorm(X[:, i] .- X[:, j])
+            end
+            inds = sortperm(d)[1:NN]
+            D[i,1:NN], N[i,1:NN] = d[inds], inds
+        end
     end
     # then have that D(i,j), d(N(j))
     return D, N

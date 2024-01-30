@@ -1,11 +1,13 @@
 export 
     tune_bandwidth,
     sparseW_sepband,
+    sparseW_cone,
     normW,
     computeDiffusionEig,
     diffSVD,
     diffProjection,
     projectDiffEig
+    
 
 """
     tune_bandwidth(D::Matrix{Float64},
@@ -146,8 +148,9 @@ end
     - sym: boolean for optional operator symmetrization
 
 """
+
 function sparseW_cone(X::Matrix{Float64}, eps::Float64, m̂::Float64, 
-     D::Matrix{Float64}, N::Matrix{Integer}, dt::Float64; NN::Integer = 0, sym::Bool = true )
+     D::Matrix{Float64}, N::Matrix{Integer}; NN::Integer = 0, sym::Bool = true )
    # get distances
    # D, N = distNN(X, NN, usenorm = usenorm)
    
@@ -158,6 +161,7 @@ function sparseW_cone(X::Matrix{Float64}, eps::Float64, m̂::Float64,
 
 #    point_density, _  = est_ind_bandwidth(D, NN, nT)
 #    m = m̂ / 2
+# should be moving things appropriately for this kernel
 
    # W = zeros(Float64, nT, nT)
    # believing reddit for sparse matrices purposes
@@ -165,11 +169,12 @@ function sparseW_cone(X::Matrix{Float64}, eps::Float64, m̂::Float64,
    cols = Int64[]
    vals = Float64[]
 
-   for i = 1:nT
+   for i = 2:nT
        for j = 1:NN
            k = N[i,j]
            push!(rows, i)
            push!(cols, k)
+           iszero(k - 1) && continue
            if i != k
                 # wik = sepbw_kernel(X[i,:], X[k,:], point_density[i], point_density[k], m, γ = eps)
 
@@ -187,7 +192,7 @@ function sparseW_cone(X::Matrix{Float64}, eps::Float64, m̂::Float64,
        end
    end
 
-   W = dropzeros(sparse(rows, cols, vals, nT, nT))
+   W = dropzeros(sparse(rows, cols, vals, nT - 1, nT - 1))
 
    if sym
         if ~all(isapprox.(W - W', 0; rtol=1e-16))
