@@ -4,7 +4,7 @@ include("torusData.jl")
 
 
 # NLSA
-X =  Matrix(x');
+X =  x
 usedt = dt
 NN = 4000;
 candidate_ϵs = 2 .^ (range(-40,40,length = 100))

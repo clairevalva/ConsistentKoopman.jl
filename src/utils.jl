@@ -34,7 +34,7 @@ function delayembed(X, numdelays::Int)
         m = size(X,2);
         Xemb = zeros(typeof(X[1]), n*(1 + numdelays), m - numdelays);
         for del in 0:numdelays
-            Xemb[del*n .+ (1:n), :] = X[:, (1 + del):(m - numdelays + del)];
+            Xemb[del*n .+ (1:n), :] = X[:, (numdelays - del + 1):(m -  del)];
         end
         
         return Xemb
@@ -56,34 +56,87 @@ end
     - usenorm: specify the distance norm to use, defaults to l2 
 
 """
-function distNN(X::Matrix{Float64}, NN::Integer = 0; usenorm = euclidean)
+function distNN(X::Matrix, NN; usenorm = euclidean)
     _, nT = size(X)
     D = zeros(Float64, nT, nT)
-    N = zeros(Int, nT, nT)
+    
 
-    if NN == 0
-        # if no nearest neighbors specified, keep all of them
-        println("here")
-        NN = nT
-        for i = 1:nT
-            N[:,i] = collect(1:nT)
-            for j = 1:(i-1)
-                D[j,i] = euclidean(X[:,j], X[:,i])
-            end
-        end
-    else
-
-        for i = 1:nT
-            d = zeros(Float64, nT)
-            for j = 1:nT
-                d[j] = usenorm(X[:, i] .- X[:, j])
-            end
-            inds = sortperm(d)[1:NN]
-            D[i,1:NN], N[i,1:NN] = d[inds], inds
+    # if no nearest neighbors specified, keep all of them
+    
+    
+    for i = 1:nT
+        for j = 1:(i-1)
+            D[j,i] = euclidean(X[:,j], X[:,i])
         end
     end
-    # then have that D(i,j), d(N(j))
-    return D, N
+    
+    D = D + D'
+    if NN > 0
+        N = rmNN(D, NN)
+        return D, N
+    else
+        N = ones(Bool, nT, nT)
+        return D, N
+    end
+end
+
+"""
+    distNN(X::Matrix{Float64}, NN::Integer = 0; usenorm::Function = norm)
+
+    computes distances from matrix M, keeps distance (D) and indexing info (N) for NN nearest neighbors
+
+    Arguments
+    =================
+    - X: data matrix of size nT × nD (time by spatial dim)
+    - NN: positive nearest neighbors parameter, if 0 defaults to keeping all
+
+    Keyword arguments
+    =================
+    - usenorm: specify the distance norm to use, defaults to l2 
+
+"""
+function distNN(X::Matrix, NN::Integer, emb::Integer; usenorm = euclidean)
+    _, nT = size(X)
+    D = zeros(Float64, nT, nT)
+
+    # if no nearest neighbors specified, keep all of them
+    for i = 1:nT
+        for j = 1:(i-1)
+            D[j,i] = euclidean(X[:,j], X[:,i])
+        end
+    end
+    
+    D = D + D'
+
+    nT_emb = nT - emb + 1
+    D_emb = zeros(Float64, nT_emb, nT_emb)
+
+    for k = 0:(emb - 1)
+        D_emb += D[(emb - k):(end - k), (emb - k):(end - k)].^2
+    end 
+    D_emb = sqrt.(D_emb)
+
+    if NN > 0
+        N = rmNN(D_emb, NN)
+        return D_emb, N
+    else
+        N = ones(Bool, nT_emb, nT_emb)
+        return D_emb, N
+    end
+end
+
+function rmNN(D::Matrix, NN::Integer = 0)
+    nT = size(D, 1)
+    N = ones(Bool, nT, nT)
+    if NN == 0
+        return D
+    else
+        sortsD = sortperm(D, dims = 2)
+        N[sortsD[:, (NN + 1):end]] .= false
+
+    end
+
+    return N
 end
 
 """

@@ -30,7 +30,7 @@ export
     - epsls: vector of test epsilons (strictly positive only)
 
 """
-function tune_bandwidth(D::Matrix{Float64}, DN::Matrix{Integer}, 
+function tune_bandwidth(D::Matrix{Float64}, DN::Matrix, 
     NN::Integer, nT::Integer, epsls::Vector{Float64})
     
     Dsq = D.^2
@@ -42,9 +42,9 @@ function tune_bandwidth(D::Matrix{Float64}, DN::Matrix{Integer},
     for eee in 1:nE
         eps = epsls[eee]
         for m = 1:nT
-            for n = 1:NN
-                k = DN[m,n]
-                eps_sum[eee] = eps_sum[eee] + exp(-1*Dsq[m,n] / (eps * ris[m] * ris[k])^2)
+            for n = 1:nT
+                k = n #
+                eps_sum[eee] = eps_sum[eee] + exp(-1*Dsq[m,n] / (ris[m] * ris[k])^2 / eps)
                 
             end
         end
@@ -80,7 +80,7 @@ end
 
 """
 function sparseW_sepband(X::Matrix{Float64}, eps::Float64, m̂::Float64, 
-     D::Matrix{Float64}, N::Matrix{Integer}; NN::Integer = 0, sym::Bool = true )
+     D::Matrix{Float64}, N::Matrix; NN::Integer = 0, sym::Bool = true )
    # get distances
    # D, N = distNN(X, NN, usenorm = usenorm)
    
@@ -100,7 +100,7 @@ function sparseW_sepband(X::Matrix{Float64}, eps::Float64, m̂::Float64,
 
    for i = 1:nT
        for j = 1:NN
-           k = N[i,j]
+           k = j #N[i,j]
            push!(rows, i)
            push!(cols, k)
            if i != k
@@ -214,17 +214,11 @@ end
 
 """
 function normW(X::Union{Matrix{Float64}, SparseMatrixCSC{Float64, Int64}})
-    nX = size(X, 1)
-
-    D = sum(X, dims = 2)
-    D = D[:]
-    Dinv = Diagonal(D.^(-1))    
     
-    # S = zero(D)
-    # for i = 1:nX
-    #     S[i] = sum(X[i,:] ./ D)
-    # end
-    S = sum(X ./ (D'), dims = 1)[:]
+
+    D = sum(X, dims = 2)[:]
+    Dinv = Diagonal(D.^(-1))
+    S = sum(X ./ (D'), dims = 2)[:]
     Sneghalf = Diagonal(S.^(-1/2))
 
     K̂ = Dinv * X * Sneghalf

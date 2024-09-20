@@ -126,8 +126,10 @@ function resolventop_power(φ::Matrix{ComplexF64}, w::Vector{Float64}, Tf::Int64
 
     _ , L = size(φ)
     ts = 0:dt:Tf
+    # print(ts[1:10])
     nT = length(ts)
     qs = 0:(nT - 1)
+    # println(qs, nT)
     lenBatch = ceil(Int64, nT / batchN)
     
 
@@ -147,11 +149,16 @@ function resolventop_power(φ::Matrix{ComplexF64}, w::Vector{Float64}, Tf::Int64
         qqq = qs[a_st:a_end]
         eee = exp.(-1*z*ttt)
         lb = length(qqq)
+        # println("U", any(isnan.(U))) 
+        # println("qqq", any(isnan.(qqq))) 
+        # println("ttt",  ttt)        
         
         Ut = 1im*zeros(lb, L, L)
         for k = 1:lb
             Ut[k,:,:] = U^qqq[k] .* eee[k]
         end
+        # println("Ut", mean(U))  
+        # println("Ut", any(isnan.(Ut)))  
         
         # simps rule code from from here: https://discourse.julialang.org/t/simpsons-rule/84114/6
         I += dt/3 .* (Ut[1,:,:] + 2*sum(Ut[3:2:end-2, :, :], dims = 1)[1,:,:] + 4*sum(Ut[2:2:end, :, :], dims = 1)[1,:,:] + Ut[end, :, :])
@@ -181,6 +188,7 @@ function computeSeigs(R::Matrix{ComplexF64}, G::Matrix{Float64}, z::Float64, N::
 
     Pτ_eig = eigen(Pτ)
     c, γ_polar = Pτ_eig.vectors, real(Pτ_eig.values)
+    # println(size(c))
     ζ = makeζ(c, φ[:,1:N])
 
     s = abs.(γ_polar)
@@ -192,19 +200,26 @@ function computeSeigs(R::Matrix{ComplexF64}, G::Matrix{Float64}, z::Float64, N::
 
     S_plus = Ψ[:, 2:M] * diagm(s[2:M]) * Ψ[:, 2:M]'
     S_minus = -1*Ψ_bar[:, 2:M] * diagm(s[2:M]) * Ψ_bar[:, 2:M]'
+    # S_minus = -1*Ψ_bar[:, 2:M] * diagm(s[2:M]) * Ψ_bar[:, 2:M]'
     S = S_plus + S_minus
 
     S_eig = eigen(S)
     c = S_eig.vectors
+    # print(size(c))
     s_new = real(S_eig.values)
 
     ζ_new = φ * c
 
     s_pos = s_new .>= 0
+    # return s_new
+
     ρ_new = 1im*zeros(size(s_new))
     ρ_new[s_pos] = ainv(z, s_new[s_pos])
     ρ_new[.!s_pos] = ainv(z, s_new[.!s_pos])
+    # print(size(ρ_new))
     ω_new = ρinv(z, ρ_new);
 
     return real(ω_new), ζ_new, c
+
+
 end
