@@ -48,7 +48,7 @@ end
 
     Arguments
     =================
-    - X: data matrix of size nT × nD (time by spatial dim)
+    - X: data matrix of size nD × nT (spatial dim by time)
     - NN: positive nearest neighbors parameter, if 0 defaults to keeping all
 
     Keyword arguments
@@ -57,31 +57,21 @@ end
 
 """
 function distNN(X::Matrix, NN; usenorm = euclidean)
-    _, nT = size(X)
-    D = zeros(Float64, nT, nT)
     
-
-    # if no nearest neighbors specified, keep all of them
+    D = pairwise(usenorm, X, dims=2)
     
-    
-    for i = 1:nT
-        for j = 1:(i-1)
-            D[j,i] = euclidean(X[:,j], X[:,i])
-        end
-    end
-    
-    D = D + D'
     if NN > 0
         N = rmNN(D, NN)
         return D, N
     else
+        _, nT = size(X)
         N = ones(Bool, nT, nT)
         return D, N
     end
 end
 
 """
-    distNN(X::Matrix{Float64}, NN::Integer = 0; usenorm::Function = norm)
+    distNN(X::Matrix{Float64}, NN::Integer = 0, emb::Integer; usenorm::Function = norm)
 
     computes distances from matrix M, keeps distance (D) and indexing info (N) for NN nearest neighbors
 
@@ -97,16 +87,7 @@ end
 """
 function distNN(X::Matrix, NN::Integer, emb::Integer; usenorm = euclidean)
     _, nT = size(X)
-    D = zeros(Float64, nT, nT)
-
-    # if no nearest neighbors specified, keep all of them
-    for i = 1:nT
-        for j = 1:(i-1)
-            D[j,i] = euclidean(X[:,j], X[:,i])
-        end
-    end
-    
-    D = D + D'
+    D = pairwise(usenorm, X, dims=2)
 
     nT_emb = nT - emb + 1
     D_emb = zeros(Float64, nT_emb, nT_emb)
