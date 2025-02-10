@@ -203,6 +203,9 @@ function sparseW_cone(X::Matrix{Float64}, eps::Float64, m̂::Float64,
    return W
 end
 
+
+
+
 """
     normW(X::Matrix{Float64})
 

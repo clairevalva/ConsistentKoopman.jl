@@ -1,5 +1,12 @@
+export 
+    centeredDiff,
+    makeVf,
+    makeΔ,
+    diffV,
+    doKoopman_diff
 
-# following built to replicate method https://doi.org/10.1038/s41467-021-26357-x
+
+# functions built to replicate method https://doi.org/10.1038/s41467-021-26357-x
 
 """
     centeredDiff(f::AbstractVector, dt::Real)
@@ -109,7 +116,7 @@ function doKoopman_diff(fs::AbstractMatrix, κs::AbstractVector, dt::Real, ϵ::R
     Δ = makeΔ(κs)
     W = diffV(V, Δ, ϵ)
 
-    λ, u = eigen(W, sortby = x -> real(x))
+    λ, u = eigen(W, sortby = x -> -1*real(x))
     nu = λ / (2*π)
     gs = 1im * zeros(size(fs))
     L = size(fs, 2)

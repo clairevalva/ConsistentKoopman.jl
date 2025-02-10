@@ -30,11 +30,11 @@ function conebw(x::Vector{Float64}, y::Vector{Float64},
     vx = x .- xpre
     vy = y .- ypre
 
-    vx = vx / euclidean(vx)
-    vy = vy / euclidean(vy)
+    vx = vx / norm(vx, 2)
+    vy = vy / norm(vy, 2)
 
     diffxy = x .- y
-    diffxy = diffxy / euclidean(diffxy)
+    diffxy = diffxy / norm(diffxy, 2)
     
     cθ1 = -vx' * diffxy
     cθ2 = vy' * diffxy

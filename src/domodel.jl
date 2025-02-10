@@ -5,7 +5,8 @@ export
     makeParamsKoop,
     eigsKoop,
     doKoopman,
-    doNLSA
+    doNLSA,
+    doNLSAMatrix
 
 struct paramsNLSA
     srcdata::Matrix{Float64}
@@ -53,6 +54,69 @@ function doNLSA(params::paramsNLSA, kernel_choice)
 
     return eigsNLSA(params, κ, φ, w)
 end
+
+function doNLSAMatrix(params::paramsNLSA, kernel_choice; m::Real = 1)
+    # m is for seperable bandwidths
+    X = params.srcdata
+    NN = params.NN
+    candidate_ϵs = params.candidate_ϵs
+    nDiff = params.nDiff
+
+    nT = size(X, 2)
+
+    println("computing distances")
+    D, DN = distNN(X, NN)
+
+    if iszero(NN)
+        NN_bw = nT
+    else
+        NN_bw = NN
+        
+        println("symmetric NNs")
+        DN = .!iszero.(DN + DN')
+        D[.!DN] .= 0
+    end
+
+
+    println("computing ind bandwidth (σ)")
+    if kernel_choice == "gaussian"
+        σ = 1
+    elseif kernel_choice == "cone"
+        σ = coneBandwidths(X, D)
+        X = X[:, 2:end]
+        D = D[2:end, 2:end]
+        nT -= 1
+    elseif kernel_choice == "seperable"
+        if isnan(m) & iszero(NN)
+            bw, m̂ = tuneBandwidth(D, 1, candidate_ϵs)
+            σ = sepBandwidths(D, m̂ * 2) 
+        elseif isnan(m)
+                bw, m̂ = tuneBandwidth(D, 1, candidate_ϵs)
+                σ = sepBandwidths(D, NN, m̂ * 2) 
+        elseif iszero(NN)
+            σ = sepBandwidths(D, m)
+        else
+            σ = sepBandwidths(D, NN, m)
+        end
+    else
+        error("kernel not implemented")
+    end
+
+    println("computing bandwidth (ϵ)")
+    bw, m = tuneBandwidth(D, σ, candidate_ϵs)
+
+    println("make kernel matrix")
+    W = makeW(D, bw, σ)
+    
+    println("normW")
+    P = normW(W)
+
+    println("NLSA eigendecomposition")
+    κ, φ, w = computeDiffusionEig(P, nDiff)
+
+    return eigsNLSA(params, κ, φ, w)
+end
+
 
 struct paramsKoop
     srcdata::Matrix{Float64}

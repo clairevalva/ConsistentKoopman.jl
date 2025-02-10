@@ -3,8 +3,9 @@ export
     distNN,
     sym_M,
     polar,
-    crosscorrcomplex,
-    sortautocorr
+    xcorr,
+    sortautocorr,
+    computeDirichletE
 
 """
     delayembed(X, numdelays::Int)
@@ -181,29 +182,51 @@ end
 """
     crosscorrcomplex(x::Vector{ComplexF64}, y::Vector{ComplexF64}, m::Int64; normed = false)
 
-    computes the cross correlation between *complex* vectors x and y (because the stats base function does NOT). For auto correlation, use x = y, and for normalization in that case set normed = true
+    computes the cross correlation between *complex* vectors x and y (because the stats base function does NOT). 
+    For auto correlation, use x = y, and for normalization in that case set normed = true
 
     Arguments
     =================
     - x: complex vector of length L
     - y: complex vector of length L
     - m: integer strictly less than l, number of nLags
-    - normed: whether or not to norm by the value when m = 0
+    - normed: how to normalize, options by inner prod vs traditional normalization ("innerprod" or "normalized")
 
 """
-function crosscorrcomplex(x::Vector{ComplexF64}, y::Vector{ComplexF64}, m::Int64; normed = false)
-    ac = sum(x[m + 1:end] .* conj.(y[1:(end - m)]))
+# function crosscorrcomplex(x::Vector{ComplexF64}, y::Vector{ComplexF64}, m::Int64; normed = false)
+#     ac = sum(x[m + 1:end] .* conj.(y[1:(end - m)]))
 
-    if normed
-        ac = ac / sum(x .* conj.(y))
+#     if normed
+#         ac = ac / sum(x .* conj.(y))
+#     end
+#     return ac
+# end
+
+function xcorr(x::AbstractVector, y::AbstractVector, lag::Int; coeff = "innerprod")
+    rawcorr = sum(x[(lag + 1):end] .* conj.(y[1:(end - lag)]))
+
+    if coeff == "innerprod"
+        xnorm = sum(x[(lag + 1):end] .* conj.(x[(lag + 1):end]))
+        ynorm = sum(y[1:(end - lag)] .* conj.(y[1:(end - lag)]))
+
+        usec = sqrt(xnorm * ynorm)
+        # usec = sqrt((x[(lag + 1):end]' * conj.(x[(lag + 1):end])) * (y[1:(end - lag)]' * conj.(y[1:(end - lag)])))
+    elseif coeff == "normalized"
+        xnorm = sum(x .* conj.(x))
+        ynorm = sum(y .* conj.(y))
+        usec = usec = sqrt(xnorm * ynorm)
+    else
+        usec = 1
     end
-    return ac
+
+    # println(usec)
+    return rawcorr / usec
 end
 
 """
     sortautocorr(ζ::Matrix{Float64})
 
-    CHECKED THAT THIS WORKED ON SEPT 14, 2023
+    CHECKED THAT THIS WORKED ON SEPT 14, 2023 (ish, acutually xcorr did not owrk)
 
     computes polar decomposition of a square matrix using svd
     Arguments
@@ -220,7 +243,7 @@ function sortautocorr(ζ::Matrix{ComplexF64}, frequencies::Vector{Float64}, nLag
     for j in 1:L
         goalacs[:, j] = exp.(-1im*frequencies[j]*(0:nLags)*dt)
         for lag in 0:nLags
-            acs[lag + 1, j] = crosscorrcomplex(ζ[:,j], ζ[:,j], lag, normed = true)
+            acs[lag + 1, j] = xcorr(ζ[:,j], ζ[:,j], lag, coeff = "innerprod")
         end
     end
 
@@ -234,3 +257,19 @@ function sortautocorr(ζ::Matrix{ComplexF64}, frequencies::Vector{Float64}, nLag
     end
 
 end
+
+"""
+    computeDirichletE(c::AbstractMatrix, κ::Vector)
+
+    computed Dirchlet energy of Koopman eigenfunction
+    Arguments
+    =================
+    - c: basis coefficients for converting into NLSA representation (matrix)
+    - κ: NLSA eigenvalues (diffusion coefficients)
+
+"""
+
+function computeDirichletE(c::AbstractMatrix, κ::Vector)
+    return sum( abs.( c) .^ 2 ./ κ, dims = 1)[:]
+end
+

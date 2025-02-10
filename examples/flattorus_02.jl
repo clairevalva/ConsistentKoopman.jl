@@ -11,7 +11,7 @@ candidate_ϵs = 2 .^ (range(-40,40,length = 100))
 nDiff = 501
 
 NLSAmodel = ConsistentKoopman.paramsNLSA(X, usedt, NN, candidate_ϵs, nDiff)
-NLSAresults = ConsistentKoopman.doNLSA(NLSAmodel, "sb")
+NLSAresults = ConsistentKoopman.doNLSA(NLSAmodel, "cone")
 
 φ = NLSAresults.φ
 κ = NLSAresults.κ
