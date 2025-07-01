@@ -114,7 +114,11 @@ function doNLSAMatrix(params::paramsNLSA, kernel_choice; m::Real = 1)
     println("NLSA eigendecomposition")
     κ, φ, w = computeDiffusionEig(P, nDiff)
 
-    return eigsNLSA(params, κ, φ, w)
+    if kernel_choice == "seperable"
+        return eigsNLSA(params, κ, φ, w), m̂, bw
+    else 
+        return eigsNLSA(params, κ, φ, w)
+    end
 end
 
 
@@ -172,3 +176,4 @@ function doKoopman(params::paramsKoop)
 
     return eigsKoop(params, ω, ζ, c), Rz
 end
+

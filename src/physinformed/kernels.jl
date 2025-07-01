@@ -423,3 +423,16 @@ function make_lhs(k, v, X; symmetric = true)
     end
     
 end
+
+function makekfun(kfun)
+
+    function kfun!(res, v, α, β)
+        if β == 0
+        res .= α .* kfun(v)
+        else
+        res .= α .* kfun(v) .+ β .* res
+        end
+    end
+
+    return kfun!
+end

@@ -63,7 +63,7 @@ end
     - k: kernel function, takes two arguments of the form of X[k]
     - X: matrix of measurements (nD × nT )
 """
-function make_Sϵ(X::AbstractArray, k)
+function make_Sϵ(X::AbstractVector, k)
     N = size(X, 1)
     function estSϵ(ϵ)
         S = 0.0
@@ -127,7 +127,7 @@ function tunek(X, k, testparams)
 
     # bestϵ
 
-    return best_epsj, bestϵ
+    return best_epsj, bestϵ, Sgs[best_epsj]
 end
 
 
@@ -200,13 +200,48 @@ end
 
 """
 
-function indbwdis(X, usenorm = euclidean)
+function indbwdis(X::AbstractVector, usenorm = euclidean)
 
     NN = size(X, 1)
     # make sure x has size (1, nD)
 
     function σ(x)
-        return sqrt(sum(usenorm.(X, x)^2) / (NN - 1))
+        
+        normdiff = 0
+        for j = 1:NN
+            normdiff += euclidean(X[j], x)^2
+        end
+
+        
+        return sqrt(normdiff/ (NN - 1))
+    end
+
+    return σ
+end
+
+
+"""
+
+    indbwdis(X::Matrix, dimM)
+
+    makes function to get individual bandwidths, as in discrete/matrix formulation
+
+"""
+
+function indbwdis(X)
+
+    NN = size(X, 2)
+    # make sure x has size (1, nD)
+
+    function σ(x)
+        
+        normdiff = 0
+        for j = 1:NN
+            normdiff += euclidean(X[:, j], x)^2
+        end
+
+        
+        return sqrt(normdiff/ (NN - 1))
     end
 
     return σ
@@ -222,12 +257,12 @@ end
     TO DO: test!
 
 """
-function makesepbwk(X, γ::Real, dimM::Real, usenorm::Function = norm)
+function makesepbwk(X, dimM::Real, usenorm = norm)
     σ = indbwdis(X)
 
-    function k_sb(x,y)
-        bw = (σ(x) * σ(y)) .^ (1 / dimM)
-        k(x, y) = exp(-1*usenorm(x, y) / (γ^2 * bw))
+    function k_sb(x,y, γ)
+        bw = (σ(x) * σ(y)) ^ (1 / dimM)
+        return exp(-1*usenorm(x, y) / (γ^2 * bw))
     end
 
     return k_sb

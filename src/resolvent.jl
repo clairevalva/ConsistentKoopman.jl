@@ -48,7 +48,7 @@ end
 
     tested on Sept 14, 2023
 """
-function posfilter(φ::Matrix{Float64})
+function posfilter(φ::Matrix)
     s = size(φ, 1)
     L = size(φ, 2)
     f = fftfreq(s)
@@ -100,16 +100,51 @@ function koopmanop(shifts::Vector{Int64}, φ::Matrix{ComplexF64}, w::Vector{Floa
     return U
 end
 
+"""
+    koopmanop(shifts::Vector{Int64}, φ::Matrix{Float64}, w::Float64)
+
+    compute approximation of Koopman operator using a shift matrix on a basis of observables (φ)
+
+    Arguments
+    =================
+    - shifts: a vector of shifts to apply, if only one give as a vector, i.e. [3] because I am very lazy 
+    - φ: diffusion eigenfunctions of size s × L 
+    - w: inner product weight
+
+    tested on Sept 14, 2023, edited to accept w as a float in Feb 2025
+"""
+function koopmanop(shifts::Vector{Int64}, φ::Matrix{ComplexF64}, w::Float64)
+    nQ = length(shifts)
+    nS , L = size(φ)
+    U = 1im*zeros(nQ, L, L)
+
+    for j = 1:nQ
+        q = shifts[j]
+
+        if q < 0
+            b = abs(q)
+            indshift = circshift(1:nS, -1*b);
+
+            U[j,:,:] = φ[indshift, :]' * (φ[: , :] .* w)
+        else
+            indshift = circshift(1:nS, -1*q);
+            U[j,:,:] = φ[:, :]' * (φ[indshift, :] .* w)
+        end
+    end
+
+    return U
+end
+
 
 """
-resolventop_power(φ::Matrix{Float64}, w::Vector{Float64}, Tf::Int64, dt::Float64, z::Float64; batchN = 1)
+resolventop_power(φ::Matrix{Float64}, w::Union{Vector{Float64}, Float64}, Tf::Int64, dt::Float64, z::Float64; batchN = 1)
 
     compute approximation of Koopman operator using a shift matrix on a basis of observables (φ)
 
     Arguments
     =================
     - φ: diffusion eigenfunctions of size s × L 
-    - w: inner product weight array of size s × 1
+    - w: inner product weight array of size s × 1 or a single weight (float) (if all the same)
     - Tf: final time to integrate to
     - dt: data spacing
     - z: real number to evaluate resolvent at
@@ -120,7 +155,7 @@ resolventop_power(φ::Matrix{Float64}, w::Vector{Float64}, Tf::Int64, dt::Float6
 
     tested on Sept 14, 2023
 """
-function resolventop_power(φ::Matrix{ComplexF64}, w::Vector{Float64}, Tf::Int64, dt::Float64, z::Float64; batchN = 1)
+function resolventop_power(φ::Matrix{ComplexF64}, w::Union{Vector{Float64}, Float64}, Tf::Int64, dt::Float64, z::Float64; batchN = 1)
 
     U = koopmanop([1], φ, w)[1,:,:]
 
@@ -135,6 +170,7 @@ function resolventop_power(φ::Matrix{ComplexF64}, w::Vector{Float64}, Tf::Int64
 
     I = zero(U)
     for j = 1:batchN
+        println("Koop op batch ", j, " of ", batchN)
 
         # get index for this batch
         if j == batchN
@@ -166,6 +202,7 @@ function resolventop_power(φ::Matrix{ComplexF64}, w::Vector{Float64}, Tf::Int64
 
     return I
 end
+
 
 function makeζ(keigvec::Matrix{ComplexF64}, diffeigvec::Matrix{Float64})
     ζ = diffeigvec * keigvec;
