@@ -230,6 +230,8 @@ function normW(X::Union{Matrix{Float64}, SparseMatrixCSC{Float64, Int64}})
     return K̃
 end
 
+
+
  """
     computeDiffusionEig(K::Union{Matrix{Float64},SparseMatrixCSC{Float64, Int64}}, L::Integer = 0)
 

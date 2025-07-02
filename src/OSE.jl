@@ -64,18 +64,6 @@ function coneBandwidths(X::AbstractMatrix, D::AbstractMatrix; ζ = 0.995, return
     end
 end
 
-function normW_pieces(X::Union{Matrix{Float64}, SparseMatrixCSC{Float64, Int64}})
-    # AHHH
-    D = sum(X, dims = 2)[:]
-    Dinv = Diagonal(D.^(-1))
-    Q = sum(X ./ (D'), dims = 2)[:]
-    Qneghalf = Diagonal(S.^(-1/2))
-
-    K̂ = Dinv * X * Sneghalf
-    K̃ = K̂ * (K̂')
-
-    return K̃
-end
 
 function makeNLSAkernel(params::paramsNLSA, kernel_choice; m::Real = 1)
     # m is for seperable bandwidths
@@ -123,12 +111,7 @@ function makeNLSAkernel(params::paramsNLSA, kernel_choice; m::Real = 1)
 
     if kernel_choice == "cone"
         bw_func = conebw #conebw(x::Vector{Float64}, y::Vector{Float64},xpre::Vector{Float64}, ypre::Vector{Float64}; ζ = 0.995)
-        function k(x, y, xpre, ypre)
-            D = euclidean(x, y)
-            σ = conebw(x, y, xpre, ypre).^-1
-            return exp.(-1 * D ./ (σ .^ 2 * bw .^ 2))
-        end
-
+        
         
 
 
