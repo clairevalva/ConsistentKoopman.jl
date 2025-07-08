@@ -219,7 +219,7 @@ end
 function normW(X::Union{Matrix{Float64}, SparseMatrixCSC{Float64, Int64}})
     
 
-    D = sum(X, dims = 2)[:]
+    D = sum(X, dims = 2)[:] 
     Dinv = Diagonal(D.^(-1))
     S = sum(X ./ (D'), dims = 2)[:]
     Sneghalf = Diagonal(S.^(-1/2))
@@ -243,7 +243,7 @@ end
     - L: number of diffusion eigenfunctions to keep
 
 """
-function computeDiffusionEig(K::Union{Matrix{Float64},SparseMatrixCSC{Float64, Int64}} , L::Integer = 0)
+function computeDiffusionEig(K, L::Integer = 0) # changed arguments to accept to allow for double precision
     # TODO: test
     if K isa SparseMatrixCSC{Float64, Int64}
         K = Matrix(K)

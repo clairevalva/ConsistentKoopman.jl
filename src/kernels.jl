@@ -28,7 +28,6 @@ function conebw(x::Vector{Float64}, y::Vector{Float64},
     # from appendix in Froyland paper: 10.1038/s41467-021-26357-x, this is \frac{1}{σ{x_i, x_j}}
 
     if (x == y) & (xpre == ypre)
-        println("same value")
         return 1
     end
     

@@ -90,8 +90,41 @@ function coneBandwidths(X::AbstractMatrix, D::AbstractMatrix; ζ = 0.995, return
     vx = vx ./ norm.(eachcol(vx), 2)'
     
 
+    Threads.@threads for i = 1:(nT - 1)
+        for j = 1:(i-1)
+            diffxy = (X[:, i + 1] - X[:, j + 1]) / D[i + 1, j + 1]
+            cθ1[i, j] = -1*vx[:,i]' * diffxy
+            cθ2[i, j] = vx[:,j]' * diffxy
+        end
+    end
+
+    cθ1 .+= cθ1'
+    cθ2 .+= cθ2'
+
+    σinv = sqrt.((1 .- ζ*cθ1) .* (1 .- ζ*cθ2)).^-1
+    if returnall
+        return vx, cθ1, cθ2, diffs, σinv
+    else
+        return σinv
+    end
+end
+
+function coneBandwidths(X::AbstractMatrix, D::AbstractMatrix, emb::Integer; ζ = 0.995, returnall = false)
+    nD, nT = size(X)
+    cθ1 = zeros(nT - 1, nT - 1)
+    cθ2 = zeros(nT - 1, nT - 1)
+
+    vx = X[:, 2:nT] .- X[:, 1:(nT - 1)]
+    vx = vx ./ norm.(eachcol(vx), 2)'
+
+    # for k = 0:(emb - 1)
+    #     D_emb += D[(emb - k):(end - k), (emb - k):(end - k)].^2
+    # end 
+    
+    println("not implemented!")
     for i = 1:(nT - 1)
         for j = 1:(i-1)
+            
             diffxy = (X[:, i + 1] - X[:, j + 1]) / D[i + 1, j + 1]
             cθ1[i, j] = -1*vx[:,i]' * diffxy
             cθ2[i, j] = vx[:,j]' * diffxy
