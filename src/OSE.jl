@@ -1,3 +1,12 @@
+export 
+    symDist,
+    normWPieces,
+    makeRbfKer,
+    makebwKer,
+    makeNormKernel_rbf,
+    makeNormKernel_cone,
+    evalPhi
+
 function symDist(M)
     testequal = (M .== M')
     foundinds = findall(iszero, testequal)
@@ -206,4 +215,8 @@ function makeNormKernel_cone(W, X, nT, bw, NN)
     end
 
     return k_faster
+end
+
+function evalPhi(kernevals::AbstractVector, φ::AbstractVector, κ::Number)
+    return sum(kernevals .* φ) / κ
 end
