@@ -72,7 +72,7 @@ function makeNormKernel_rbf(W, X, nT, bw)
         khat_evals = k_evals * (dval ^-1) .* Qneghalf
         
         k_sum = zeros(nT)
-        for l = 1:nT
+        Threads.@threads for l = 1:nT
             for j = 1:nT
                 k_sum[l] += khat_evals[j] *  K̂[l, j] 
             end

@@ -6,9 +6,9 @@ using HDF5
 include("../../src/ConsistentKoopman.jl")
 
 # do a test with RMM data, expect the NN error to be less than in torus case
-X_load = h5read("test/merid_avgs_predict_6_2025.h5", "olr_u")
+X_load = h5read("/scratch/cnv5172/kontiki6/koopmanInteraction/compatdata/merid_avgs_predict_6_2025.h5", "olr_u")
 X = reshape(X_load, :, size(X_load, 3))
-X = X[:, 1:4000]
+# X = X[:, 1:4000]
 NN = 1500;
 nEmb = 64 # nEmb = 1 and 0 are equivalent to match notation in other papers
 

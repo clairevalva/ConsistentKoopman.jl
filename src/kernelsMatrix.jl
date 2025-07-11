@@ -93,6 +93,7 @@ function coneBandwidths(X::AbstractMatrix, D::AbstractMatrix; ζ = 0.995, return
     Threads.@threads for i = 1:(nT - 1)
         if (i % 100) == 0
             println("iter ", i, ", ", i / nT, "%")
+            flush(stdout)
         end
         for j = 1:(i-1)
             diffxy = (X[:, i + 1] - X[:, j + 1]) / D[i + 1, j + 1]
