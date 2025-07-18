@@ -18,5 +18,6 @@ include("plotutils.jl")
 include("kernelsMatrix.jl")
 include("fdGenerator.jl")
 include("OSE.jl")
+include("reconstruct.jl")
 
 end
