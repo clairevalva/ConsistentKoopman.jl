@@ -28,7 +28,7 @@ X = X[:, tStart:tEnd]
 
 # set test indices
 testk = 11 # phi recon place
-spotmatch = 3000 # kernel recon place
+spotmatch = 300 # kernel recon place
 
 nT = size(X, 2)
 if nEmb > 1

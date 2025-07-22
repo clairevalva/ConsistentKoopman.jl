@@ -180,16 +180,16 @@ function makeNormKernel_cone(W, X, nT, bw, NN)
     
     k = makebwKer(bw)
 
-    function k_faster(y, ypre; verbose = false)
+    function k_faster(y, ypre; verbose = false, verbose2 = true)
 
         k_evals = zeros(nT)
         d_evals = zeros(nT)
 
         Threads.@threads for j = 1:nT
-            if (j % 200 == 0) & verbose
+            if (j % 200 == 0) & verbose2
                 println(j)
             end
-            d_evals[j] = euclidean(ypre, X[:, j])
+            d_evals[j] = euclidean(y, X[:, j + 1])
             k_evals[j] = k(y, X[:, j + 1], ypre, X[:, j])
         end
 
@@ -208,7 +208,7 @@ function makeNormKernel_cone(W, X, nT, bw, NN)
         khat_evals = k_evals * (dval ^-1) .* Qneghalf
         k_sum = zeros(nT)
         Threads.@threads for l = 1:nT
-            if (l % 100 == 0) & verbose
+            if (l % 100 == 0) & verbose2
                 println(l)
             end
             for j = 1:nT

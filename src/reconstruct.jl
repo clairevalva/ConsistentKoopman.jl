@@ -42,6 +42,7 @@ function reconstructfromproj(As::AbstractVector, zetaL, nEmb, nT_rec = nothing)
     if nT_rec === nothing
         nT_rec = length(zetaL) + nEmb - 1
     end
+    nT_eig = length(zetaL) 
     
 
     ytest = 1im*zeros(nT_rec)
@@ -73,6 +74,9 @@ function reconstructfromproj(As::AbstractMatrix, zetaL, nEmb, nT_rec = nothing, 
     if nT_rec === nothing
         nT_rec = length(zetaL) + nEmb - 1
     end
+
+    nT_eig = length(zetaL) 
+    
     
     if nD === nothing
         nD = size(As, 1)
