@@ -106,33 +106,23 @@ function reconstructfromproj(As::AbstractMatrix, zetaL, nEmb, nT_rec = nothing, 
     return ytest
 end
 
-function doreconstruction(x::AbstractVector, zetaR, zetaL, mu::Number, nEmb::Int, getAs = false)
+function doreconstruction(x::AbstractVector, zetaR, zetaL, mu::Number, nEmb::Int)
     nT_eig = length(zetaR)
     nT_rec = nT_eig + nEmb - 1
 
     As = projectdata(x, zetaR, mu, nEmb, nT_eig)
     ytest = reconstructfromproj(As, zetaL, nEmb, nT_rec)
 
-    if getAs
-       return ytest, As
-    else
-        return ytest
-    end
+    return ytest
 end
 
-function doreconstruction(x::AbstractMatrix, zetaR, zetaL, mu::Number, nEmb::Int, getAs = false)
+function doreconstruction(x::AbstractMatrix, zetaR, zetaL, mu::Number, nEmb::Int)
     nT_eig = length(zetaR)
     nT_rec = nT_eig + nEmb - 1
     nD = size(x, 1)
 
     As = projectdata(x, zetaR, mu, nEmb, nT_eig, nD)
     ytest = reconstructfromproj(As, zetaL, nEmb, nT_rec, nD)
-
-    if getAs
-       return ytest, As
-    else
-        return ytest
-    end
 
     return ytest
 end
